@@ -73,6 +73,49 @@ export function renderSettings(root, navigate) {
   });
   root.appendChild(daysWrap);
 
+  // Marcar varios días sin entreno de golpe (viajes, lesiones...)
+  const rangeWrap = el('div', { class: 'card' }, [
+    el('h4', { text: 'Marcar días sin entreno' }),
+    el('p', { class: 'muted', text: 'Para un viaje u otro parón: marca como "no entrenado" todos los días del rango en que tocaba ir al gimnasio. No pisa entrenos que ya tengan progreso registrado.' })
+  ]);
+  const fromInput = el('input', { type: 'date', class: 'settings-date' });
+  const toInput = el('input', { type: 'date', class: 'settings-date' });
+  rangeWrap.appendChild(el('div', { class: 'settings-row' }, [el('span', { text: 'Desde' }), fromInput]));
+  rangeWrap.appendChild(el('div', { class: 'settings-row' }, [el('span', { text: 'Hasta' }), toInput]));
+  rangeWrap.appendChild(el('button', {
+    class: 'btn btn--secondary',
+    text: 'Marcar rango como no entrenado',
+    onClick: () => {
+      if (!fromInput.value || !toInput.value) {
+        alert('Elige fecha de inicio y de fin.');
+        return;
+      }
+      if (fromInput.value > toInput.value) {
+        alert('La fecha "Desde" tiene que ser anterior a "Hasta".');
+        return;
+      }
+      const preview = state.previewRangeSkipped(fromInput.value, toInput.value);
+      if (!preview.skipped.length) {
+        alert('Ningún día de entreno cae dentro de ese rango.');
+        return;
+      }
+      const confirmed = confirm(
+        `Se marcarán ${preview.skipped.length} día(s) como no entrenado:\n\n` +
+        preview.skipped.map(s => `${s.date} (${s.dayName})`).join('\n') +
+        (preview.keptExisting.length
+          ? `\n\n${preview.keptExisting.length} día(s) con progreso ya registrado se dejarán tal cual.`
+          : '') +
+        '\n\n¿Confirmar?'
+      );
+      if (!confirmed) return;
+      const result = state.applyRangeSkipped(fromInput.value, toInput.value);
+      toast(`${result.skipped.length} día(s) marcados como no entrenado`);
+      fromInput.value = '';
+      toInput.value = '';
+    }
+  }));
+  root.appendChild(rangeWrap);
+
   // Backup
   const backupWrap = el('div', { class: 'card' }, [
     el('h4', { text: 'Copia de seguridad' }),

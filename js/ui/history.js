@@ -1,4 +1,4 @@
-import { el, clear } from './components.js';
+import { el, clear, toast } from './components.js';
 import { getDayById } from '../plan.js';
 import * as state from '../state.js';
 
@@ -75,6 +75,19 @@ export function renderSessionDetail(root, sessionId, navigate) {
 
   if (session.status === 'skipped') {
     root.appendChild(el('div', { class: 'card' }, [el('p', { text: 'Día no entrenado.' })]));
+    root.appendChild(el('div', { class: 'card card--danger' }, [
+      el('button', {
+        class: 'btn btn--danger',
+        text: 'Eliminar esta sesión',
+        onClick: () => {
+          if (confirm(`¿Eliminar el registro de "no entrenado" de ${session.date}? No afecta al resto del histórico.`)) {
+            state.deleteSession(session.id);
+            toast('Sesión eliminada');
+            navigate('#/history');
+          }
+        }
+      })
+    ]));
     return;
   }
 
@@ -96,6 +109,20 @@ export function renderSessionDetail(root, sessionId, navigate) {
       ]));
     }
   });
+
+  root.appendChild(el('div', { class: 'card card--danger' }, [
+    el('button', {
+      class: 'btn btn--danger',
+      text: 'Eliminar esta sesión',
+      onClick: () => {
+        if (confirm(`¿Eliminar el entreno de ${day ? day.name : session.dayId} del ${session.date}? No afecta al resto del histórico.`)) {
+          state.deleteSession(session.id);
+          toast('Sesión eliminada');
+          navigate('#/history');
+        }
+      }
+    })
+  ]));
 }
 
 function findExerciseName(day, exId) {

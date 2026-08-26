@@ -35,13 +35,22 @@ const PHASE_RULES = {
 };
 
 // history: array de getExerciseHistory(exerciseId), ascendente por fecha.
+// Puede incluir entradas con `skipped: true` (días marcados como no
+// entrenado) como marcadores de hueco, sin datos de series.
 // exercise: definición del ejercicio (repMin, repMax, rpe, increment...).
 // phase: 'definicion' | 'volumen' | 'mantenimiento'.
 export function getSuggestions(history, exercise, phase, targetRpe) {
-  if (!history.length) return [];
+  // Un bloque saltado (viaje, lesión...) corta cualquier racha: las reglas
+  // de estancamiento/progreso solo miran sesiones reales desde el último
+  // hueco, para no comparar directamente la sesión de antes del viaje con
+  // la de después como si fueran consecutivas.
+  const lastSkipIdx = history.reduce((acc, h, i) => (h.skipped ? i : acc), -1);
+  const trained = history.slice(lastSkipIdx + 1).filter(h => !h.skipped);
+
+  if (!trained.length) return [];
   const rules = PHASE_RULES[phase] || PHASE_RULES.definicion;
-  const windowSize = Math.min(6, history.length);
-  const recent = history.slice(-windowSize);
+  const windowSize = Math.min(6, trained.length);
+  const recent = trained.slice(-windowSize);
 
   if (recent.length < 2) {
     return [{

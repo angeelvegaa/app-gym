@@ -1,11 +1,49 @@
 // Helpers DOM reutilizables. Sin frameworks: crear elementos a mano.
 
+// WebKit móvil (confirmado en Safari y en la PWA instalada, con pruebas
+// automatizadas) puede despachar el 'click' de un tap sobre un elemento SIN
+// listener propio (p. ej. un simple <p>) dirigido a otro botón cercano en
+// vez de a él — y el retraso con el que llega es variable (se ha medido
+// desde ~15ms hasta ~950ms en la misma app), así que no hay ventana de
+// tiempo fiable para "esperar y descartar" ese click fantasma sin arriesgar
+// bloquear también un click legítimo. `pointerup`/`touchend`, en cambio, SÍ
+// resuelven bien el elemento realmente tocado en TODOS los casos probados
+// (tap directo, tap tras redibujado, tap sobre elemento sin listener...),
+// así que son el único evento del que nos fiamos para touch y ratón. El
+// respaldo de teclado (Enter/Espacio) se maneja aparte, sin depender nunca
+// de 'click'.
+const DRAG_THRESHOLD_PX = 10;
+
+function bindTap(node, handler) {
+  let startX = 0;
+  let startY = 0;
+  let dragged = false;
+
+  node.addEventListener('pointerdown', (e) => {
+    startX = e.clientX;
+    startY = e.clientY;
+    dragged = false;
+  });
+  node.addEventListener('pointermove', (e) => {
+    if (Math.hypot(e.clientX - startX, e.clientY - startY) > DRAG_THRESHOLD_PX) dragged = true;
+  });
+  node.addEventListener('pointerup', (e) => {
+    if (dragged) return;
+    handler(e);
+  });
+  node.addEventListener('keyup', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') handler(e);
+  });
+}
+
 export function el(tag, attrs = {}, children = []) {
   const node = document.createElement(tag);
   for (const [key, value] of Object.entries(attrs)) {
     if (key === 'class') node.className = value;
     else if (key === 'text') node.textContent = value;
-    else if (key.startsWith('on') && typeof value === 'function') {
+    else if (key === 'onClick' && typeof value === 'function') {
+      bindTap(node, value);
+    } else if (key.startsWith('on') && typeof value === 'function') {
       node.addEventListener(key.slice(2).toLowerCase(), value);
     } else if (value !== null && value !== undefined) {
       node.setAttribute(key, value);

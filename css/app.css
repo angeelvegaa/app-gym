@@ -40,6 +40,14 @@
 
 * { box-sizing: border-box; }
 
+/* Sin esto, WebKit puede interpretar dos taps rápidos en sitios distintos de
+   la pantalla (p. ej. tocar el título de un ejercicio para expandirlo y
+   luego tocar dentro de la ficha) como el inicio de un gesto de doble-tap-
+   zoom, y despachar el evento "click" retrasado y mal dirigido al elemento
+   del primer tap en vez de al segundo. Se pone a nivel de html para que
+   cubra toda la página, no solo los botones. */
+html { touch-action: manipulation; }
+
 html, body {
   margin: 0;
   padding: 0;

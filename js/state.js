@@ -2,7 +2,7 @@
 
 import * as storage from './storage.js';
 import { PLAN, getDayById } from './plan.js';
-import { getBlockPosition, nextMonday } from './schedule.js';
+import { getBlockPosition, nextMonday, todayStr } from './schedule.js';
 
 function defaultSettings() {
   const weekdays = {};
@@ -126,18 +126,78 @@ export function markDaySkipped(dateStr, dayId) {
   return setSessionStatus(session.id, 'skipped');
 }
 
-// Todas las sesiones completadas/en curso de un ejercicio dado, ordenadas por fecha ascendente.
+function rangeDays(startDateStr, endDateStr) {
+  const [sy, sm, sd] = startDateStr.split('-').map(Number);
+  const [ey, em, ed] = endDateStr.split('-').map(Number);
+  const start = new Date(sy, sm - 1, sd);
+  const end = new Date(ey, em - 1, ed);
+  const skipped = [];
+  const keptExisting = [];
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const dateStr = todayStr(d);
+    const weekday = d.getDay();
+    const day = PLAN.days.find(pd => _settings.weekdays[pd.id] === weekday);
+    if (!day) continue; // ese día de la semana no toca entrenar
+
+    const id = sessionIdFor(dateStr, day.id);
+    const existing = _sessions[id];
+    if (existing && existing.status !== 'pending' && existing.status !== 'skipped') {
+      keptExisting.push({ date: dateStr, dayId: day.id, dayName: day.name });
+    } else {
+      skipped.push({ date: dateStr, dayId: day.id, dayName: day.name });
+    }
+  }
+  return { skipped, keptExisting };
+}
+
+// Solo lectura: calcula qué días del rango [start, end] se marcarían como
+// no entrenado y cuáles se dejarían tal cual por tener progreso ya
+// registrado, sin escribir nada todavía. Pensado para confirmar antes de
+// aplicar con applyRangeSkipped.
+export function previewRangeSkipped(startDateStr, endDateStr) {
+  ensureLoaded();
+  return rangeDays(startDateStr, endDateStr);
+}
+
+// Marca como "no entrenado" todos los días que tocaba entrenar (según los
+// días de la semana configurados) dentro de un rango de fechas [start, end]
+// inclusive. No pisa sesiones que ya tengan progreso real (in_progress o
+// completed) — solo crea/actualiza huecos pendientes o ya saltados.
+export function applyRangeSkipped(startDateStr, endDateStr) {
+  ensureLoaded();
+  const { skipped, keptExisting } = rangeDays(startDateStr, endDateStr);
+  skipped.forEach(({ date, dayId }) => {
+    const session = getOrCreateSession(date, dayId);
+    setSessionStatus(session.id, 'skipped');
+  });
+  return { skipped, keptExisting };
+}
+
+// Elimina una sesión del histórico. No afecta al resto de sesiones.
+export function deleteSession(sessionId) {
+  ensureLoaded();
+  if (!_sessions[sessionId]) return false;
+  delete _sessions[sessionId];
+  persistSessions();
+  return true;
+}
+
+// Todas las sesiones de un ejercicio dado, ordenadas por fecha ascendente.
+// Incluye las sesiones "skipped" como marcador de hueco (sin datos de series)
+// para que el motor de sugerencias pueda cortar rachas ahí; getSuggestions
+// se encarga de no tratarlas como sesiones de entreno reales.
 export function getExerciseHistory(exerciseId) {
   ensureLoaded();
   return Object.values(_sessions)
-    .filter(s => s.status !== 'skipped' && s.entries[exerciseId] && s.entries[exerciseId].sets)
-    .filter(s => s.entries[exerciseId].sets.some(set => set.status === 'done'))
+    .filter(s => s.entries[exerciseId] && s.entries[exerciseId].sets)
+    .filter(s => s.status === 'skipped' || s.entries[exerciseId].sets.some(set => set.status === 'done'))
     .sort((a, b) => a.date.localeCompare(b.date))
     .map(s => ({
       date: s.date,
       block: s.block,
       weekInBlock: s.weekInBlock,
       phase: s.phase,
+      skipped: s.status === 'skipped',
       ...s.entries[exerciseId]
     }));
 }
