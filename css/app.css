@@ -195,17 +195,33 @@ h4 { font-size: 15px; margin: 0 0 8px; }
 .exercise-body { padding: 0 12px 16px; }
 .exercise-hint { font-size: 13px; color: var(--text-muted); margin: 0 4px 10px; }
 
+/* Dos líneas por serie: peso+reps arriba (con ancho de sobra para leer el
+   número en móviles estrechos, ~375-430px en vertical) y saltar/check
+   abajo. Meterlo todo en una sola fila dejaba los steppers en ~20px de
+   ancho útil: el valor numérico quedaba invisible, no solo apretado. */
 .set-row {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 8px;
-  padding: 8px 4px;
+  padding: 10px 4px;
   min-height: 56px;
   border-bottom: 1px solid var(--border);
 }
 .set-row:last-of-type { border-bottom: none; }
 .set-row--done { opacity: 1; }
 .set-row--skipped { opacity: 0.5; }
+
+.set-row-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.set-row-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+}
 
 .set-number { width: 26px; font-size: 13px; color: var(--text-muted); flex-shrink: 0; }
 
