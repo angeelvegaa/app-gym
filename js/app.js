@@ -1,6 +1,6 @@
 import { renderToday } from './ui/today.js';
 import { renderSession } from './ui/session.js';
-import { renderHistory, renderSessionDetail } from './ui/history.js';
+import { renderHistoryMonths, renderHistoryWeeks, renderHistoryDays, renderSessionDetail } from './ui/history.js';
 import { renderExerciseList, renderExerciseDetail } from './ui/exercise.js';
 import { renderSettings } from './ui/settings.js';
 
@@ -23,7 +23,8 @@ function navigate(hash) {
 
 function route() {
   const hash = location.hash || '#/today';
-  const [, section, param] = hash.split('/');
+  const [, section, ...rest] = hash.split('/');
+  const param = rest[0];
 
   window.scrollTo(0, 0);
 
@@ -42,7 +43,9 @@ function route() {
       break;
     case 'history':
       setActiveNav('history');
-      renderHistory(root, navigate);
+      if (rest.length === 0) renderHistoryMonths(root, navigate);
+      else if (rest.length === 1) renderHistoryWeeks(root, navigate, rest[0]);
+      else renderHistoryDays(root, navigate, rest[0], rest[1]);
       break;
     case 'exercises':
       setActiveNav('exercises');

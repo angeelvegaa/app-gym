@@ -36,16 +36,19 @@ const PHASE_RULES = {
 
 // history: array de getExerciseHistory(exerciseId), ascendente por fecha.
 // Puede incluir entradas con `skipped: true` (días marcados como no
-// entrenado) como marcadores de hueco, sin datos de series.
+// entrenado, sin datos de series) o `partial: true` (sí entrenó, pero no
+// siguió el plan al 100% — datos reales pero de baja fiabilidad para estas
+// reglas).
 // exercise: definición del ejercicio (repMin, repMax, rpe, increment...).
 // phase: 'definicion' | 'volumen' | 'mantenimiento'.
 export function getSuggestions(history, exercise, phase, targetRpe) {
-  // Un bloque saltado (viaje, lesión...) corta cualquier racha: las reglas
-  // de estancamiento/progreso solo miran sesiones reales desde el último
-  // hueco, para no comparar directamente la sesión de antes del viaje con
-  // la de después como si fueran consecutivas.
-  const lastSkipIdx = history.reduce((acc, h, i) => (h.skipped ? i : acc), -1);
-  const trained = history.slice(lastSkipIdx + 1).filter(h => !h.skipped);
+  // Un bloque saltado (viaje, lesión...) o un día no seguido al 100% corta
+  // cualquier racha: las reglas de estancamiento/progreso solo miran
+  // sesiones reales y de confianza desde el último de estos huecos, para no
+  // comparar la sesión de antes con la de después como si fueran
+  // consecutivas.
+  const lastGapIdx = history.reduce((acc, h, i) => (h.skipped || h.partial ? i : acc), -1);
+  const trained = history.slice(lastGapIdx + 1).filter(h => !h.skipped && !h.partial);
 
   if (!trained.length) return [];
   const rules = PHASE_RULES[phase] || PHASE_RULES.definicion;

@@ -80,8 +80,10 @@ export function renderSettings(root, navigate) {
   ]);
   const fromInput = el('input', { type: 'date', class: 'settings-date' });
   const toInput = el('input', { type: 'date', class: 'settings-date' });
+  const reasonInput = el('input', { type: 'text', class: 'settings-date', placeholder: 'Motivo (opcional): Viaje a...' });
   rangeWrap.appendChild(el('div', { class: 'settings-row' }, [el('span', { text: 'Desde' }), fromInput]));
   rangeWrap.appendChild(el('div', { class: 'settings-row' }, [el('span', { text: 'Hasta' }), toInput]));
+  rangeWrap.appendChild(el('div', { class: 'settings-row' }, [el('span', { text: 'Motivo' }), reasonInput]));
   rangeWrap.appendChild(el('button', {
     class: 'btn btn--secondary',
     text: 'Marcar rango como no entrenado',
@@ -94,13 +96,14 @@ export function renderSettings(root, navigate) {
         alert('La fecha "Desde" tiene que ser anterior a "Hasta".');
         return;
       }
+      const reason = reasonInput.value.trim() || null;
       const preview = state.previewRangeSkipped(fromInput.value, toInput.value);
       if (!preview.skipped.length) {
         alert('Ningún día de entreno cae dentro de ese rango.');
         return;
       }
       const confirmed = confirm(
-        `Se marcarán ${preview.skipped.length} día(s) como no entrenado:\n\n` +
+        `Se marcarán ${preview.skipped.length} día(s) como "${reason || 'no entrenado'}":\n\n` +
         preview.skipped.map(s => `${s.date} (${s.dayName})`).join('\n') +
         (preview.keptExisting.length
           ? `\n\n${preview.keptExisting.length} día(s) con progreso ya registrado se dejarán tal cual.`
@@ -108,10 +111,11 @@ export function renderSettings(root, navigate) {
         '\n\n¿Confirmar?'
       );
       if (!confirmed) return;
-      const result = state.applyRangeSkipped(fromInput.value, toInput.value);
-      toast(`${result.skipped.length} día(s) marcados como no entrenado`);
+      const result = state.applyRangeSkipped(fromInput.value, toInput.value, reason);
+      toast(`${result.skipped.length} día(s) marcados como "${reason || 'no entrenado'}"`);
       fromInput.value = '';
       toInput.value = '';
+      reasonInput.value = '';
     }
   }));
   root.appendChild(rangeWrap);

@@ -92,7 +92,7 @@ export function getOrCreateSession(dateStr, dayId) {
     phase: _settings.phase,
     status: 'pending',
     entries,
-    notes: ''
+    reason: null // motivo (skipped) o nota corta (partial)
   };
 
   _sessions[id] = session;
@@ -111,19 +111,21 @@ export function updateEntry(sessionId, exerciseId, patchFn) {
   return session;
 }
 
-export function setSessionStatus(sessionId, status) {
+// reason: undefined = no tocar el motivo ya guardado; null o string = sobrescribirlo.
+export function setSessionStatus(sessionId, status, reason = undefined) {
   ensureLoaded();
   const session = _sessions[sessionId];
   if (!session) throw new Error(`Sesión desconocida: ${sessionId}`);
   session.status = status;
+  if (reason !== undefined) session.reason = reason || null;
   persistSessions();
   return session;
 }
 
 // Marca un día como "no entrenado" sin necesidad de abrir el entreno.
-export function markDaySkipped(dateStr, dayId) {
+export function markDaySkipped(dateStr, dayId, reason = null) {
   const session = getOrCreateSession(dateStr, dayId);
-  return setSessionStatus(session.id, 'skipped');
+  return setSessionStatus(session.id, 'skipped', reason);
 }
 
 function rangeDays(startDateStr, endDateStr) {
@@ -141,7 +143,8 @@ function rangeDays(startDateStr, endDateStr) {
 
     const id = sessionIdFor(dateStr, day.id);
     const existing = _sessions[id];
-    if (existing && existing.status !== 'pending' && existing.status !== 'skipped') {
+    const hasRealProgress = existing && !['pending', 'skipped'].includes(existing.status);
+    if (hasRealProgress) {
       keptExisting.push({ date: dateStr, dayId: day.id, dayName: day.name });
     } else {
       skipped.push({ date: dateStr, dayId: day.id, dayName: day.name });
@@ -152,8 +155,8 @@ function rangeDays(startDateStr, endDateStr) {
 
 // Solo lectura: calcula qué días del rango [start, end] se marcarían como
 // no entrenado y cuáles se dejarían tal cual por tener progreso ya
-// registrado, sin escribir nada todavía. Pensado para confirmar antes de
-// aplicar con applyRangeSkipped.
+// registrado (in_progress, completed o partial), sin escribir nada
+// todavía. Pensado para confirmar antes de aplicar con applyRangeSkipped.
 export function previewRangeSkipped(startDateStr, endDateStr) {
   ensureLoaded();
   return rangeDays(startDateStr, endDateStr);
@@ -161,14 +164,15 @@ export function previewRangeSkipped(startDateStr, endDateStr) {
 
 // Marca como "no entrenado" todos los días que tocaba entrenar (según los
 // días de la semana configurados) dentro de un rango de fechas [start, end]
-// inclusive. No pisa sesiones que ya tengan progreso real (in_progress o
-// completed) — solo crea/actualiza huecos pendientes o ya saltados.
-export function applyRangeSkipped(startDateStr, endDateStr) {
+// inclusive, con un motivo común para todo el rango. No pisa sesiones que
+// ya tengan progreso real (in_progress, completed o partial) — solo crea o
+// actualiza huecos pendientes o ya saltados.
+export function applyRangeSkipped(startDateStr, endDateStr, reason = null) {
   ensureLoaded();
   const { skipped, keptExisting } = rangeDays(startDateStr, endDateStr);
   skipped.forEach(({ date, dayId }) => {
     const session = getOrCreateSession(date, dayId);
-    setSessionStatus(session.id, 'skipped');
+    setSessionStatus(session.id, 'skipped', reason);
   });
   return { skipped, keptExisting };
 }
@@ -184,8 +188,10 @@ export function deleteSession(sessionId) {
 
 // Todas las sesiones de un ejercicio dado, ordenadas por fecha ascendente.
 // Incluye las sesiones "skipped" como marcador de hueco (sin datos de series)
-// para que el motor de sugerencias pueda cortar rachas ahí; getSuggestions
-// se encarga de no tratarlas como sesiones de entreno reales.
+// y marca las "partial" (no seguidas al 100%) aparte: sí conservan sus datos
+// reales (para verlos en el gráfico/histórico) pero quedan señaladas para
+// que getSuggestions las excluya de las reglas de progresión igual que un
+// hueco, sin tratarlas como una sesión de confianza completa.
 export function getExerciseHistory(exerciseId) {
   ensureLoaded();
   return Object.values(_sessions)
@@ -198,6 +204,7 @@ export function getExerciseHistory(exerciseId) {
       weekInBlock: s.weekInBlock,
       phase: s.phase,
       skipped: s.status === 'skipped',
+      partial: s.status === 'partial',
       ...s.entries[exerciseId]
     }));
 }

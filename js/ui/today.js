@@ -34,7 +34,8 @@ export function renderToday(root, navigate) {
     pending: 'Sin empezar',
     in_progress: 'En curso',
     completed: 'Completado',
-    skipped: 'No entrenado'
+    partial: session.reason ? `No al 100%: ${session.reason}` : 'No al 100%',
+    skipped: session.reason || 'No entrenado'
   }[session.status];
 
   root.appendChild(el('div', { class: 'card card--today' }, [
@@ -46,15 +47,15 @@ export function renderToday(root, navigate) {
         text: session.status === 'pending' ? 'Empezar entreno' : 'Continuar entreno',
         onClick: () => navigate(`#/session/${session.id}`)
       }),
-      session.status !== 'completed' && session.status !== 'skipped'
+      !['completed', 'partial', 'skipped'].includes(session.status)
         ? el('button', {
             class: 'btn btn--ghost',
             text: 'Marcar día como no entrenado',
             onClick: () => {
-              if (confirm('¿Marcar hoy como no entrenado? Se guarda en el histórico sin romper la secuencia.')) {
-                state.setSessionStatus(session.id, 'skipped');
-                renderToday(root, navigate);
-              }
+              const reason = prompt('Motivo (opcional, se ve en el historial):');
+              if (reason === null) return; // canceló
+              state.setSessionStatus(session.id, 'skipped', reason.trim() || null);
+              renderToday(root, navigate);
             }
           })
         : null

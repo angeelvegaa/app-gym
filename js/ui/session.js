@@ -40,6 +40,17 @@ export function renderSession(root, sessionId, navigate) {
     return;
   }
 
+  if (session.status === 'partial') {
+    root.appendChild(el('div', { class: 'card card--partial' }, [
+      el('p', { text: `Marcado como "no al 100%"${session.reason ? `: ${session.reason}` : ''}` }),
+      el('button', {
+        class: 'btn btn--ghost btn--small',
+        text: 'Deshacer',
+        onClick: () => { state.setSessionStatus(session.id, 'in_progress'); renderSession(root, sessionId, navigate); }
+      })
+    ]));
+  }
+
   const list = el('div', { class: 'exercise-list' });
   root.appendChild(list);
 
@@ -59,6 +70,20 @@ export function renderSession(root, sessionId, navigate) {
 
   const total = day.exercises.length;
   const done = day.exercises.filter(ex => isExerciseComplete(session, ex)).length;
+
+  root.appendChild(el('div', { class: 'partial-finish-row' }, [
+    el('button', {
+      class: 'btn btn--ghost btn--small',
+      text: 'Hoy no seguí el plan al 100%',
+      onClick: () => {
+        const reason = prompt('¿Qué cambió respecto al plan? (opcional, se ve en el historial)');
+        if (reason === null) return; // canceló, no hacemos nada
+        state.setSessionStatus(session.id, 'partial', reason.trim() || null);
+        toast('Entreno guardado como "no al 100%"');
+        navigate('#/today');
+      }
+    })
+  ]));
 
   const bar = el('div', { class: 'bottom-bar' }, [
     el('span', { class: 'bottom-bar-progress', text: `${done} / ${total} ejercicios` }),

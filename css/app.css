@@ -10,6 +10,7 @@
   --danger: #dc2626;
   --success: #16a34a;
   --warning: #d97706;
+  --partial: #7c3aed;
   --chip-bg: #e5e7eb;
   --chip-active-bg: #2563eb;
   --chip-active-text: #ffffff;
@@ -30,6 +31,7 @@
     --danger: #f87171;
     --success: #4ade80;
     --warning: #fbbf24;
+    --partial: #a78bfa;
     --chip-bg: #2c3a52;
     --chip-active-bg: #3b82f6;
     --chip-active-text: #0f172a;
@@ -320,6 +322,8 @@ h4 { font-size: 15px; margin: 0 0 8px; }
 }
 .simple-item--done .btn--check { background: color-mix(in srgb, var(--success) 15%, var(--surface)); border-color: var(--success); }
 
+.partial-finish-row { text-align: center; margin: 16px 0 4px; }
+
 .bottom-bar {
   position: sticky;
   bottom: calc(64px + env(safe-area-inset-bottom));
@@ -365,8 +369,12 @@ h4 { font-size: 15px; margin: 0 0 8px; }
 }
 .badge--completed { background: color-mix(in srgb, var(--success) 25%, transparent); color: var(--success); }
 .badge--in_progress { background: color-mix(in srgb, var(--warning) 25%, transparent); color: var(--warning); }
+.badge--partial { background: color-mix(in srgb, var(--partial) 25%, transparent); color: var(--partial); }
 .badge--skipped { background: var(--chip-bg); color: var(--text-muted); }
 .badge--pending { background: var(--chip-bg); color: var(--text-muted); }
+
+.card--partial { border-color: var(--partial); }
+.history-row--partial { border-color: var(--partial); }
 
 .detail-set-list { list-style: none; padding: 0; margin: 0; font-size: 14px; }
 .detail-set-list li { padding: 6px 0; border-bottom: 1px solid var(--border); }

@@ -67,3 +67,24 @@ export function nextMonday(date = new Date()) {
   d.setDate(d.getDate() + (day === 1 ? 0 : diff));
   return todayStr(d);
 }
+
+const MONTH_NAMES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+];
+
+// 'YYYY-MM-DD' -> 'YYYY-MM', para agrupar sesiones por mes calendario.
+export function monthKeyOf(dateStr) {
+  return dateStr.slice(0, 7);
+}
+
+// 'YYYY-MM' -> 'Agosto 2026'.
+export function monthLabel(monthKey) {
+  const [y, m] = monthKey.split('-').map(Number);
+  return `${MONTH_NAMES[m - 1]} ${y}`;
+}
+
+// Clave estable para agrupar por semana de bloque, p.ej. "1-2" = bloque 1, semana 2.
+export function weekKeyOf(session) {
+  return `${session.block}-${session.weekInBlock}`;
+}
