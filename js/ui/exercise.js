@@ -1,16 +1,15 @@
 import { el, clear } from './components.js';
-import { PLAN } from '../plan.js';
+import { ACTIVE_PLAN_VERSION, getAllKnownExercises } from '../plan.js';
 import * as state from '../state.js';
 import { getExerciseHistory } from '../state.js';
 import { getSuggestions } from '../suggestions.js';
 import { getTargetRpe } from '../schedule.js';
 
+// Incluye ejercicios de cualquier versión de plan alguna vez usada, para
+// poder seguir consultando el progreso de algo que ya no está en la rutina
+// activa (p. ej. tras cambiar de plan).
 function allExercises() {
-  const list = [];
-  PLAN.days.forEach(day => {
-    day.exercises.forEach(ex => list.push({ ...ex, dayName: day.name }));
-  });
-  return list;
+  return getAllKnownExercises();
 }
 
 export function renderExerciseList(root, navigate) {
@@ -18,13 +17,14 @@ export function renderExerciseList(root, navigate) {
   root.appendChild(el('h2', { text: 'Progreso por ejercicio' }));
   const list = el('div', { class: 'exercise-select-list' });
   allExercises().forEach(ex => {
+    const discontinued = ex.planVersion !== ACTIVE_PLAN_VERSION;
     list.appendChild(el('button', {
       class: 'list-row',
       type: 'button',
       onClick: () => navigate(`#/exercise/${ex.id}`)
     }, [
       el('span', { text: ex.name }),
-      el('span', { class: 'muted', text: ex.dayName })
+      el('span', { class: 'muted', text: discontinued ? `${ex.dayName} · plan anterior` : ex.dayName })
     ]));
   });
   root.appendChild(list);

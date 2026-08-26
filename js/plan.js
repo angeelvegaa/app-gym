@@ -1,7 +1,17 @@
-// Definición estática del plan de entrenamiento.
-// Añadir un día o un ejercicio nuevo = añadir una entrada aquí, sin tocar lógica.
+// Registro de versiones del plan de entrenamiento.
+//
+// Cada versión queda congelada aquí para siempre: aunque cambies de rutina
+// más adelante (añadir boxeo, cambiar un día...), las sesiones ya
+// registradas siguen resolviendo sus ejercicios y días contra la versión
+// con la que se guardaron (session.planVersion), así que su historial no
+// se rompe ni hay que borrar ni migrar nada.
+//
+// Para cambiar de plan:
+//   1. Añade una entrada nueva a PLANS con el siguiente número de versión.
+//   2. Sube ACTIVE_PLAN_VERSION a ese número.
+//   3. No toques ni borres las versiones anteriores.
 
-export const PLAN = {
+const PLAN_V1 = {
   version: 1,
   days: [
     {
@@ -119,16 +129,44 @@ export const PLAN = {
   ]
 };
 
-export function getDayById(dayId) {
-  return PLAN.days.find(d => d.id === dayId) || null;
+export const PLANS = {
+  1: PLAN_V1
+};
+
+// Versión vigente ahora mismo. Súbela al añadir un plan nuevo a PLANS.
+export const ACTIVE_PLAN_VERSION = 1;
+
+// El plan activo. Todo lo que crea datos nuevos (sesión de hoy, ajustes de
+// días de la semana...) usa esto. Para leer un plan histórico usa getPlan().
+export const PLAN = PLANS[ACTIVE_PLAN_VERSION];
+
+export function getPlan(version = ACTIVE_PLAN_VERSION) {
+  return PLANS[version] || PLANS[ACTIVE_PLAN_VERSION];
 }
 
-export function getDayByWeekday(weekday) {
-  return PLAN.days.find(d => d.weekday === weekday) || null;
+export function getDayById(dayId, version = ACTIVE_PLAN_VERSION) {
+  return getPlan(version).days.find(d => d.id === dayId) || null;
 }
 
-export function getAllExercises(day) {
-  return day.exercises;
+// Todas las versiones de plan alguna vez usadas, de más reciente a más antigua.
+export function getAllPlanVersions() {
+  return Object.keys(PLANS).map(Number).sort((a, b) => b - a);
+}
+
+// Todos los ejercicios que hayan existido en cualquier versión del plan,
+// para el selector de Progreso: así se puede seguir consultando el
+// histórico de un ejercicio aunque ya no esté en la rutina activa. Si el
+// mismo id aparece en varias versiones, se usa la definición más reciente.
+export function getAllKnownExercises() {
+  const map = new Map();
+  getAllPlanVersions().slice().reverse().forEach(v => {
+    getPlan(v).days.forEach(day => {
+      day.exercises.forEach(ex => {
+        map.set(ex.id, { ...ex, dayName: day.name, planVersion: v });
+      });
+    });
+  });
+  return [...map.values()];
 }
 
 export const PHASES = ['definicion', 'volumen', 'mantenimiento'];

@@ -3,6 +3,7 @@ import { renderSession } from './ui/session.js';
 import { renderHistoryMonths, renderHistoryWeeks, renderHistoryDays, renderSessionDetail } from './ui/history.js';
 import { renderExerciseList, renderExerciseDetail } from './ui/exercise.js';
 import { renderSettings } from './ui/settings.js';
+import { renderRoutine } from './ui/routine.js';
 
 const root = document.getElementById('view');
 const navButtons = document.querySelectorAll('.nav-btn');
@@ -40,6 +41,10 @@ function route() {
     case 'session-detail':
       setActiveNav('history');
       renderSessionDetail(root, param, navigate);
+      break;
+    case 'routine':
+      setActiveNav('routine');
+      renderRoutine(root);
       break;
     case 'history':
       setActiveNav('history');

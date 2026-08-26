@@ -20,7 +20,14 @@ let _sessions = null;
 function ensureLoaded() {
   if (_settings === null) {
     const loaded = storage.loadSettings();
-    _settings = loaded ? { ...defaultSettings(), ...loaded } : defaultSettings();
+    const defaults = defaultSettings();
+    // `weekdays` se fusiona aparte (no solo el nivel superior): si cambias
+    // de plan y el nuevo añade un día, necesita su día de la semana por
+    // defecto aunque ya tuvieras ajustes guardados de un plan anterior —
+    // si no, ese día nunca se encontraría en la pantalla Hoy.
+    _settings = loaded
+      ? { ...defaults, ...loaded, weekdays: { ...defaults.weekdays, ...loaded.weekdays } }
+      : defaults;
   }
   if (_sessions === null) {
     _sessions = storage.loadSessions().sessions || {};

@@ -415,6 +415,21 @@ h4 { font-size: 15px; margin: 0 0 8px; }
   font-size: 15px;
 }
 
+/* ---- Mi rutina (solo lectura) ---- */
+
+.routine-section-label { margin: 14px 0 6px; }
+.routine-list { list-style: none; margin: 0 0 4px; padding: 0; }
+.routine-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.routine-item:last-child { border-bottom: none; }
+.routine-ex-name { font-size: 15px; font-weight: 600; }
+.routine-ex-detail { font-size: 13px; color: var(--text-muted); }
+
 .progress-chart { width: 100%; height: auto; }
 .progress-chart-line { fill: none; stroke: var(--primary); stroke-width: 2; }
 .progress-chart-point { fill: var(--primary); }

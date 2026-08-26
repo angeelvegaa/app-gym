@@ -19,7 +19,7 @@ export function renderSession(root, sessionId, navigate) {
     root.appendChild(el('p', { text: 'Sesión no encontrada.' }));
     return;
   }
-  const day = getDayById(session.dayId);
+  const day = getDayById(session.dayId, session.planVersion);
   const settings = state.getSettings();
 
   root.appendChild(el('div', { class: 'session-header' }, [

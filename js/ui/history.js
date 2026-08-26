@@ -154,7 +154,7 @@ export function renderHistoryDays(root, navigate, monthKey, weekKey) {
   }
 
   sessions.forEach(session => {
-    const day = getDayById(session.dayId);
+    const day = getDayById(session.dayId, session.planVersion);
     root.appendChild(el('button', {
       class: `history-row history-row--${session.status}`,
       type: 'button',
@@ -179,7 +179,7 @@ export function renderSessionDetail(root, sessionId, navigate) {
     root.appendChild(el('p', { text: 'Sesión no encontrada.' }));
     return;
   }
-  const day = getDayById(session.dayId);
+  const day = getDayById(session.dayId, session.planVersion);
   const monthKey = monthKeyOf(session.date);
   const weekKey = weekKeyOf(session);
   const backToDays = () => navigate(`#/history/${monthKey}/${weekKey}`);
