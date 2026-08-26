@@ -1,0 +1,69 @@
+// Puro: fecha -> posición en el bloque de 4 semanas, y ajuste de RPE objetivo.
+// Sin estado, fácil de verificar a mano.
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const WEEK_MS = 7 * DAY_MS;
+
+const WEEK_TYPES = {
+  1: { label: 'Volumen base', rpeShift: -1 },
+  2: { label: 'Subida', rpeShift: 0 },
+  3: { label: 'Pico', rpeShift: 1 },
+  4: { label: 'Deload', rpeShift: -2 }
+};
+
+function toDateOnly(dateStr) {
+  // dateStr 'YYYY-MM-DD' interpretado en local, sin desfase horario.
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+export function todayStr(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+// blockStart: 'YYYY-MM-DD' (debe ser un lunes). date: 'YYYY-MM-DD'.
+export function getBlockPosition(dateStr, blockStartStr) {
+  const date = toDateOnly(dateStr);
+  const start = toDateOnly(blockStartStr);
+  const diffDays = Math.floor((date - start) / DAY_MS);
+  // Antes de que arranque el bloque configurado, se muestra como semana 1
+  // en vez de envolver a un "deload" negativo que confundiría en Ajustes.
+  if (diffDays < 0) return { block: 1, weekInBlock: 1 };
+  const weeksSinceStart = Math.floor(diffDays / 7);
+  const block = Math.floor(weeksSinceStart / 4) + 1;
+  const weekInBlock = (weeksSinceStart % 4) + 1;
+  return { block, weekInBlock };
+}
+
+export function getWeekType(weekInBlock) {
+  return WEEK_TYPES[weekInBlock] || WEEK_TYPES[1];
+}
+
+// baseRpe puede ser .5 (p.ej. 7.5); se limita siempre a [4, 10].
+export function getTargetRpe(baseRpe, weekInBlock) {
+  const shift = getWeekType(weekInBlock).rpeShift;
+  const value = baseRpe + shift;
+  return Math.min(10, Math.max(4, value));
+}
+
+// En deload (semana 4) se sugiere una serie menos, mínimo 2.
+export function getSuggestedSets(baseSets, weekInBlock) {
+  if (weekInBlock === 4) return Math.max(2, baseSets - 1);
+  return baseSets;
+}
+
+export function isDeloadWeek(weekInBlock) {
+  return weekInBlock === 4;
+}
+
+// Próximo lunes a partir de hoy (o el propio hoy si ya es lunes).
+export function nextMonday(date = new Date()) {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = d.getDay(); // 0=domingo ... 1=lunes
+  const diff = (8 - day) % 7; // días hasta el próximo lunes
+  d.setDate(d.getDate() + (day === 1 ? 0 : diff));
+  return todayStr(d);
+}
