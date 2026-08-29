@@ -7,12 +7,14 @@
 // se rompe ni hay que borrar ni migrar nada.
 //
 // Para cambiar de plan:
-//   1. Añade una entrada nueva a PLANS con el siguiente número de versión.
+//   1. Añade una entrada nueva a PLANS con el siguiente número de versión
+//      y un `name` legible (se ve en el selector de "Mi rutina").
 //   2. Sube ACTIVE_PLAN_VERSION a ese número.
 //   3. No toques ni borres las versiones anteriores.
 
 const PLAN_V1 = {
   version: 1,
+  name: 'PPL + Upper/Lower',
   days: [
     {
       id: 'push',

@@ -10,6 +10,14 @@ export function renderSettings(root, navigate) {
   root.appendChild(el('h2', { text: 'Ajustes' }));
   const settings = state.getSettings();
 
+  // Rutina activa (solo información — cambiarla de verdad es una acción
+  // aparte, ver "Mi rutina" > README para el flujo).
+  root.appendChild(el('div', { class: 'card' }, [
+    el('h4', { text: 'Rutina activa' }),
+    el('p', { text: `${PLAN.name || 'Plan'} (versión ${PLAN.version})` }),
+    el('p', { class: 'muted', text: 'Esta es la rutina que se usa al registrar un entreno nuevo. Puedes consultar cualquier rutina guardada, sin cambiar cuál está activa, desde "Mi rutina".' })
+  ]));
+
   // Fase actual
   const phaseWrap = el('div', { class: 'card' }, [
     el('h4', { text: 'Fase actual' }),
