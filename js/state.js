@@ -1,12 +1,50 @@
-// CRUD de sesiones y ajustes, sobre el adaptador de storage.js.
+// CRUD de sesiones, ajustes y rutinas guardadas, sobre el adaptador de
+// storage.js. Cada dispositivo tiene sus propias rutinas: no hay nada
+// compartido ni sincronizado entre instalaciones.
 
 import * as storage from './storage.js';
-import { PLAN, getDayById } from './plan.js';
+import { LEGACY_MIGRATION_PLAN } from './plan.js';
 import { getBlockPosition, nextMonday, todayStr } from './schedule.js';
 
+let _settings = null;
+let _sessions = null;
+let _plans = null;
+
+function ensurePlans() {
+  if (_plans !== null) return;
+  const loaded = storage.loadPlans();
+  if (loaded && loaded.plans && Object.keys(loaded.plans).length) {
+    _plans = loaded;
+    return;
+  }
+
+  const existingSessions = storage.loadSessions().sessions || {};
+  if (Object.keys(existingSessions).length > 0) {
+    // Dispositivo con historial de antes de tener rutinas guardadas en la
+    // app: migra su plan fijo de entonces como su primera rutina, con los
+    // mismos ids de día/ejercicio que ya usan sus sesiones, sin preguntar.
+    _plans = {
+      plans: { [LEGACY_MIGRATION_PLAN.version]: LEGACY_MIGRATION_PLAN },
+      activeVersion: LEGACY_MIGRATION_PLAN.version,
+      nextVersion: LEGACY_MIGRATION_PLAN.version + 1
+    };
+    storage.savePlans(_plans);
+  } else {
+    // Dispositivo nuevo de verdad: sin rutinas todavía. app.js muestra el
+    // onboarding hasta que se cree o elija una.
+    _plans = { plans: {}, activeVersion: null, nextVersion: 1 };
+  }
+}
+
+function persistPlans() {
+  storage.savePlans({ plans: _plans.plans, activeVersion: _plans.activeVersion, nextVersion: _plans.nextVersion });
+}
+
 function defaultSettings() {
+  ensurePlans();
   const weekdays = {};
-  PLAN.days.forEach(d => { weekdays[d.id] = d.weekday; });
+  const active = _plans.activeVersion != null ? _plans.plans[_plans.activeVersion] : null;
+  if (active) active.days.forEach(d => { weekdays[d.id] = d.weekday; });
   return {
     phase: 'definicion',
     blockStart: nextMonday(),
@@ -14,16 +52,14 @@ function defaultSettings() {
   };
 }
 
-let _settings = null;
-let _sessions = null;
-
 function ensureLoaded() {
+  ensurePlans();
   if (_settings === null) {
     const loaded = storage.loadSettings();
     const defaults = defaultSettings();
     // `weekdays` se fusiona aparte (no solo el nivel superior): si cambias
-    // de plan y el nuevo añade un día, necesita su día de la semana por
-    // defecto aunque ya tuvieras ajustes guardados de un plan anterior —
+    // de rutina activa y la nueva añade un día, necesita su día de la
+    // semana por defecto aunque ya tuvieras ajustes guardados de otra —
     // si no, ese día nunca se encontraría en la pantalla Hoy.
     _settings = loaded
       ? { ...defaults, ...loaded, weekdays: { ...defaults.weekdays, ...loaded.weekdays } }
@@ -32,6 +68,14 @@ function ensureLoaded() {
   if (_sessions === null) {
     _sessions = storage.loadSessions().sessions || {};
   }
+}
+
+// Limpia la caché en memoria (tras importar un backup o borrar todo), para
+// que la próxima lectura recoja lo que se acaba de escribir en storage.
+export function resetCache() {
+  _settings = null;
+  _sessions = null;
+  _plans = null;
 }
 
 export function getSettings() {
@@ -64,6 +108,145 @@ export function sessionIdFor(dateStr, dayId) {
   return `${dateStr}_${dayId}`;
 }
 
+// --- Rutinas guardadas ---
+
+function slugify(text) {
+  return (text || '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'item';
+}
+
+// Da id estable a cada día/ejercicio de un borrador de rutina (a partir de
+// su nombre), evitando choques dentro del mismo plan.
+function assignIds(days) {
+  const usedDayIds = new Set();
+  return days.map(day => {
+    let dayId = day.id || slugify(day.name);
+    let base = dayId, n = 2;
+    while (usedDayIds.has(dayId)) dayId = `${base}-${n++}`;
+    usedDayIds.add(dayId);
+
+    const usedExIds = new Set();
+    const withId = (item) => {
+      let id = item.id || slugify(item.name);
+      let b = id, m = 2;
+      while (usedExIds.has(id)) id = `${b}-${m++}`;
+      usedExIds.add(id);
+      return { ...item, id };
+    };
+
+    return {
+      ...day,
+      id: dayId,
+      warmup: (day.warmup || []).map(withId),
+      exercises: (day.exercises || []).map(withId)
+    };
+  });
+}
+
+export function hasAnyPlan() {
+  ensurePlans();
+  return _plans.activeVersion != null;
+}
+
+export function getActivePlanVersion() {
+  ensurePlans();
+  return _plans.activeVersion;
+}
+
+export function getActivePlan() {
+  ensurePlans();
+  return _plans.activeVersion != null ? _plans.plans[_plans.activeVersion] : null;
+}
+
+// Sin version, devuelve la rutina activa.
+export function getPlan(version) {
+  ensurePlans();
+  const v = version ?? _plans.activeVersion;
+  return (v != null && _plans.plans[v]) || null;
+}
+
+export function getAllPlans() {
+  ensurePlans();
+  return Object.values(_plans.plans).sort((a, b) => b.version - a.version);
+}
+
+export function getAllPlanVersions() {
+  return getAllPlans().map(p => p.version);
+}
+
+export function getDayById(dayId, version) {
+  const plan = getPlan(version);
+  return (plan && plan.days.find(d => d.id === dayId)) || null;
+}
+
+// Todos los ejercicios de cualquier rutina guardada en este dispositivo,
+// para el selector de Progreso: así se sigue consultando el histórico de un
+// ejercicio aunque ya no esté en la rutina activa. Si el mismo id aparece
+// en varias rutinas, se usa la definición de la más reciente.
+export function getAllKnownExercises() {
+  const map = new Map();
+  getAllPlans().slice().reverse().forEach(plan => {
+    plan.days.forEach(day => {
+      day.exercises.forEach(ex => {
+        map.set(ex.id, { ...ex, dayName: day.name, planVersion: plan.version });
+      });
+    });
+  });
+  return [...map.values()];
+}
+
+// Backfill de días de la semana para los días de `plan`, sin perder
+// reasignaciones que ya tuvieras para ids que coincidan.
+function mergeWeekdaysFor(plan) {
+  const defaults = {};
+  plan.days.forEach(d => { defaults[d.id] = d.weekday; });
+  _settings = { ..._settings, weekdays: { ...defaults, ...(_settings.weekdays || {}) } };
+  storage.saveSettings(_settings);
+}
+
+// Crea una rutina nueva a partir de un borrador { name, description?, days }
+// (sin ids todavía; se asignan aquí). Si es la primera rutina del
+// dispositivo, se activa sola. Devuelve su version.
+export function createPlan({ name, description, days }) {
+  ensureLoaded();
+  const version = _plans.nextVersion;
+  const plan = { version, name: (name || '').trim() || `Rutina ${version}`, days: assignIds(days) };
+  if (description) plan.description = description;
+  _plans.plans[version] = plan;
+  _plans.nextVersion = version + 1;
+  persistPlans();
+  if (_plans.activeVersion == null) setActivePlanVersion(version);
+  return version;
+}
+
+// Sustituye el contenido de una rutina ya existente (mismo version).
+export function updatePlan(version, { name, description, days }) {
+  ensureLoaded();
+  if (!_plans.plans[version]) throw new Error(`Rutina desconocida: ${version}`);
+  const plan = { version, name: (name || '').trim() || `Rutina ${version}`, days: assignIds(days) };
+  if (description) plan.description = description;
+  _plans.plans[version] = plan;
+  persistPlans();
+  if (_plans.activeVersion === version) mergeWeekdaysFor(plan);
+}
+
+// Cambia cuál es la rutina activa (la que se usa para registrar entrenos
+// nuevos). No toca ni reescribe el histórico ya guardado.
+export function setActivePlanVersion(version) {
+  ensureLoaded();
+  if (!_plans.plans[version]) throw new Error(`Rutina desconocida: ${version}`);
+  _plans.activeVersion = version;
+  persistPlans();
+  mergeWeekdaysFor(_plans.plans[version]);
+}
+
+export function deletePlan(version) {
+  ensureLoaded();
+  if (_plans.activeVersion === version) throw new Error('No se puede borrar la rutina activa.');
+  delete _plans.plans[version];
+  persistPlans();
+}
+
 function emptyEntryFor(exercise) {
   if (exercise.type === 'checkbox' || exercise.type === 'warmup') {
     return { done: false, weight: null };
@@ -74,13 +257,16 @@ function emptyEntryFor(exercise) {
   };
 }
 
-// Crea (si no existe) y devuelve la sesión de una fecha+día concretos.
+// Crea (si no existe) y devuelve la sesión de una fecha+día concretos, con
+// la rutina ACTIVA en ese momento.
 export function getOrCreateSession(dateStr, dayId) {
   ensureLoaded();
   const id = sessionIdFor(dateStr, dayId);
   if (_sessions[id]) return _sessions[id];
 
-  const day = getDayById(dayId);
+  const activePlan = getActivePlan();
+  if (!activePlan) throw new Error('No hay ninguna rutina activa.');
+  const day = activePlan.days.find(d => d.id === dayId);
   if (!day) throw new Error(`Día desconocido: ${dayId}`);
 
   const { block, weekInBlock } = getBlockPosition(dateStr, _settings.blockStart);
@@ -93,7 +279,7 @@ export function getOrCreateSession(dateStr, dayId) {
     id,
     date: dateStr,
     dayId,
-    planVersion: PLAN.version,
+    planVersion: activePlan.version,
     block,
     weekInBlock,
     phase: _settings.phase,
@@ -136,6 +322,7 @@ export function markDaySkipped(dateStr, dayId, reason = null) {
 }
 
 function rangeDays(startDateStr, endDateStr) {
+  const activePlan = getActivePlan();
   const [sy, sm, sd] = startDateStr.split('-').map(Number);
   const [ey, em, ed] = endDateStr.split('-').map(Number);
   const start = new Date(sy, sm - 1, sd);
@@ -145,7 +332,7 @@ function rangeDays(startDateStr, endDateStr) {
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     const dateStr = todayStr(d);
     const weekday = d.getDay();
-    const day = PLAN.days.find(pd => _settings.weekdays[pd.id] === weekday);
+    const day = activePlan.days.find(pd => _settings.weekdays[pd.id] === weekday);
     if (!day) continue; // ese día de la semana no toca entrenar
 
     const id = sessionIdFor(dateStr, day.id);

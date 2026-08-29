@@ -1,7 +1,8 @@
 import { el, clear, toast } from './components.js';
-import { getDayById } from '../plan.js';
 import * as state from '../state.js';
 import { monthKeyOf, monthLabel, weekKeyOf } from '../schedule.js';
+
+const { getDayById } = state;
 
 // label = lo que se ve en la fila/badge. Para 'skipped' se sustituye por el
 // motivo si existe (p. ej. "Viaje a Roma" en vez de "No entrenado").

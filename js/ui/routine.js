@@ -1,6 +1,6 @@
 import { el, clear } from './components.js';
-import { ACTIVE_PLAN_VERSION, getPlan, getAllPlanVersions } from '../plan.js';
-import { getSettings } from '../state.js';
+import * as state from '../state.js';
+import { getSettings, getPlan, getAllPlanVersions } from '../state.js';
 
 // Solo lectura: consultar cualquier rutina guardada (activa o anterior) y
 // sus días, sin ningún control de registro. Ver una rutina distinta a la
@@ -15,9 +15,14 @@ function planLabel(plan) {
 
 export function renderRoutineDays(root, navigate, versionParam) {
   clear(root);
-  const version = versionParam ? Number(versionParam) : ACTIVE_PLAN_VERSION;
+  const activeVersion = state.getActivePlanVersion();
+  const version = versionParam ? Number(versionParam) : activeVersion;
   const plan = getPlan(version);
-  const isActive = version === ACTIVE_PLAN_VERSION;
+  if (!plan) {
+    root.appendChild(el('p', { text: 'No hay ninguna rutina guardada todavía.' }));
+    return;
+  }
+  const isActive = version === activeVersion;
   const allVersions = getAllPlanVersions(); // más reciente primero
 
   root.appendChild(el('h2', { text: planLabel(plan) }));
@@ -30,7 +35,7 @@ export function renderRoutineDays(root, navigate, versionParam) {
       select.appendChild(el('option', {
         value: v,
         selected: v === version ? 'selected' : null,
-        text: `${planLabel(p)}${v === ACTIVE_PLAN_VERSION ? ' (activa)' : ''}`
+        text: `${planLabel(p)}${v === activeVersion ? ' (activa)' : ''}`
       }));
     });
     select.addEventListener('change', () => navigate(`#/routine/${select.value}`));
@@ -66,9 +71,9 @@ export function renderRoutineDays(root, navigate, versionParam) {
 
 export function renderRoutineDetail(root, navigate, versionParam, dayId) {
   clear(root);
-  const version = versionParam ? Number(versionParam) : ACTIVE_PLAN_VERSION;
+  const version = versionParam ? Number(versionParam) : state.getActivePlanVersion();
   const plan = getPlan(version);
-  const day = plan.days.find(d => d.id === dayId);
+  const day = plan && plan.days.find(d => d.id === dayId);
 
   if (!day) {
     root.appendChild(el('p', { text: 'Día no encontrado en esta rutina.' }));

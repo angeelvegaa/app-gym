@@ -1,5 +1,4 @@
 import { el, clear, numberStepper, rpeChips, toast } from './components.js';
-import { getDayById } from '../plan.js';
 import * as state from '../state.js';
 import { getTargetRpe, getSuggestedSets, isDeloadWeek } from '../schedule.js';
 
@@ -19,7 +18,7 @@ export function renderSession(root, sessionId, navigate) {
     root.appendChild(el('p', { text: 'Sesión no encontrada.' }));
     return;
   }
-  const day = getDayById(session.dayId, session.planVersion);
+  const day = state.getDayById(session.dayId, session.planVersion);
   const settings = state.getSettings();
 
   root.appendChild(el('div', { class: 'session-header' }, [

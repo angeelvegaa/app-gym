@@ -1,23 +1,23 @@
 import { el, clear } from './components.js';
-import { ACTIVE_PLAN_VERSION, getAllKnownExercises } from '../plan.js';
 import * as state from '../state.js';
 import { getExerciseHistory } from '../state.js';
 import { getSuggestions } from '../suggestions.js';
 import { getTargetRpe } from '../schedule.js';
 
-// Incluye ejercicios de cualquier versión de plan alguna vez usada, para
+// Incluye ejercicios de cualquier rutina guardada en este dispositivo, para
 // poder seguir consultando el progreso de algo que ya no está en la rutina
-// activa (p. ej. tras cambiar de plan).
+// activa (p. ej. tras cambiar de rutina).
 function allExercises() {
-  return getAllKnownExercises();
+  return state.getAllKnownExercises();
 }
 
 export function renderExerciseList(root, navigate) {
   clear(root);
   root.appendChild(el('h2', { text: 'Progreso por ejercicio' }));
+  const activeVersion = state.getActivePlanVersion();
   const list = el('div', { class: 'exercise-select-list' });
   allExercises().forEach(ex => {
-    const discontinued = ex.planVersion !== ACTIVE_PLAN_VERSION;
+    const discontinued = ex.planVersion !== activeVersion;
     list.appendChild(el('button', {
       class: 'list-row',
       type: 'button',

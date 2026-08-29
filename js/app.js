@@ -4,6 +4,9 @@ import { renderHistoryMonths, renderHistoryWeeks, renderHistoryDays, renderSessi
 import { renderExerciseList, renderExerciseDetail } from './ui/exercise.js';
 import { renderSettings } from './ui/settings.js';
 import { renderRoutineDays, renderRoutineDetail } from './ui/routine.js';
+import { renderOnboarding } from './ui/onboarding.js';
+import { renderPlanEditor } from './ui/plan-editor.js';
+import * as state from './state.js';
 
 const root = document.getElementById('view');
 const navButtons = document.querySelectorAll('.nav-btn');
@@ -29,7 +32,26 @@ function route() {
 
   window.scrollTo(0, 0);
 
+  // Dispositivo sin ninguna rutina guardada todavía: fuerza la
+  // configuración inicial, salvo que ya vayamos hacia el editor (p. ej.
+  // "empezar en blanco" navega ahí antes de que exista ninguna rutina).
+  if (!state.hasAnyPlan() && section !== 'onboarding' && section !== 'plan-editor') {
+    document.body.classList.add('onboarding-active');
+    setActiveNav('');
+    renderOnboarding(root, navigate);
+    return;
+  }
+  document.body.classList.remove('onboarding-active');
+
   switch (section) {
+    case 'onboarding':
+      setActiveNav('');
+      renderOnboarding(root, navigate);
+      break;
+    case 'plan-editor':
+      setActiveNav('settings');
+      renderPlanEditor(root, navigate, param);
+      break;
     case 'today':
       setActiveNav('today');
       renderToday(root, navigate);

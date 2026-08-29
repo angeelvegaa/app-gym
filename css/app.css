@@ -65,6 +65,10 @@ body {
   min-height: 100vh;
 }
 
+/* Sin rutinas todavía: no hay nada que las pestañas puedan mostrar. */
+body.onboarding-active { padding-bottom: env(safe-area-inset-bottom); }
+body.onboarding-active .bottom-nav { display: none; }
+
 .app-header {
   position: sticky;
   top: 0;
@@ -109,6 +113,13 @@ h4 { font-size: 15px; margin: 0 0 8px; }
 }
 
 .card--danger { border-color: var(--danger); }
+
+.onboarding-disclaimer {
+  border-left: 3px solid var(--warning);
+  padding-left: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+}
 
 /* ---- Botones ---- */
 
@@ -448,6 +459,35 @@ h4 { font-size: 15px; margin: 0 0 8px; }
 }
 .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .settings-row .settings-select { width: auto; flex: 1; }
+
+.plan-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.plan-row:last-of-type { border-bottom: none; }
+.plan-row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.plan-row-name { font-weight: 600; }
+.plan-row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ---- Editor de rutinas ---- */
+
+/* Etiqueta arriba, input a todo lo ancho abajo: en una fila no cabían bien
+   etiquetas largas ("Unidad de la repetición...") en móvil estrecho. */
+.editor-field { margin-bottom: 12px; }
+.editor-field-label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
+.editor-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+.plan-editor-days { margin-bottom: 8px; }
 
 /* ---- Navegación inferior ---- */
 

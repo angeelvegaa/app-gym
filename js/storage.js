@@ -3,7 +3,8 @@
 
 const KEYS = {
   sessions: 'gym.sessions',
-  settings: 'gym.settings'
+  settings: 'gym.settings',
+  plans: 'gym.plans'
 };
 
 const SCHEMA_VERSION = 1;
@@ -48,11 +49,24 @@ export function saveSettings(settings) {
   return writeRaw(KEYS.settings, { schemaVersion: SCHEMA_VERSION, ...settings });
 }
 
+// Rutinas guardadas en este dispositivo: { schemaVersion, plans: {v: planObj},
+// activeVersion, nextVersion }. Cada dispositivo tiene las suyas, sin sincronizar.
+export function loadPlans() {
+  const data = readRaw(KEYS.plans);
+  if (!data) return null;
+  return data;
+}
+
+export function savePlans(data) {
+  return writeRaw(KEYS.plans, { schemaVersion: SCHEMA_VERSION, ...data });
+}
+
 export function exportAll() {
   return JSON.stringify({
     exportedAt: new Date().toISOString(),
     sessions: readRaw(KEYS.sessions),
-    settings: readRaw(KEYS.settings)
+    settings: readRaw(KEYS.settings),
+    plans: readRaw(KEYS.plans)
   }, null, 2);
 }
 
@@ -61,10 +75,12 @@ export function importAll(jsonString) {
   if (!parsed || typeof parsed !== 'object') throw new Error('JSON inválido');
   if (parsed.sessions) writeRaw(KEYS.sessions, parsed.sessions);
   if (parsed.settings) writeRaw(KEYS.settings, parsed.settings);
+  if (parsed.plans) writeRaw(KEYS.plans, parsed.plans);
   return true;
 }
 
 export function wipeAll() {
   localStorage.removeItem(KEYS.sessions);
   localStorage.removeItem(KEYS.settings);
+  localStorage.removeItem(KEYS.plans);
 }

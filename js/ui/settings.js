@@ -1,5 +1,5 @@
 import { el, clear, toast } from './components.js';
-import { PHASES, PHASE_LABELS, PLAN } from '../plan.js';
+import { PHASES, PHASE_LABELS } from '../plan.js';
 import * as state from '../state.js';
 import * as storage from '../storage.js';
 
@@ -9,14 +9,58 @@ export function renderSettings(root, navigate) {
   clear(root);
   root.appendChild(el('h2', { text: 'Ajustes' }));
   const settings = state.getSettings();
+  const activePlan = state.getActivePlan();
 
-  // Rutina activa (solo información — cambiarla de verdad es una acción
-  // aparte, ver "Mi rutina" > README para el flujo).
-  root.appendChild(el('div', { class: 'card' }, [
-    el('h4', { text: 'Rutina activa' }),
-    el('p', { text: `${PLAN.name || 'Plan'} (versión ${PLAN.version})` }),
-    el('p', { class: 'muted', text: 'Esta es la rutina que se usa al registrar un entreno nuevo. Puedes consultar cualquier rutina guardada, sin cambiar cuál está activa, desde "Mi rutina".' })
-  ]));
+  // Mis rutinas: listar, crear, activar, editar, borrar.
+  const plansWrap = el('div', { class: 'card' }, [
+    el('h4', { text: 'Mis rutinas' }),
+    el('p', { class: 'muted', text: 'La rutina activa es la que se usa al registrar un entreno nuevo. Cambiar cuál ves en "Mi rutina" no la cambia — actívala aquí explícitamente.' })
+  ]);
+  state.getAllPlans().forEach(plan => {
+    const isActive = plan.version === state.getActivePlanVersion();
+    const row = el('div', { class: 'plan-row' }, [
+      el('div', { class: 'plan-row-main' }, [
+        el('span', { class: 'plan-row-name', text: plan.name }),
+        el('span', { class: 'muted', text: isActive ? 'Activa' : `${plan.days.length} días` })
+      ]),
+      el('div', { class: 'plan-row-actions' }, [
+        !isActive ? el('button', {
+          class: 'btn btn--secondary btn--small',
+          text: 'Activar',
+          onClick: () => {
+            if (confirm(`¿Hacer "${plan.name}" tu rutina activa? Se usará para los entrenos nuevos a partir de ahora. Tu historial no se toca.`)) {
+              state.setActivePlanVersion(plan.version);
+              toast(`"${plan.name}" activada`);
+              renderSettings(root, navigate);
+            }
+          }
+        }) : null,
+        el('button', {
+          class: 'btn btn--secondary btn--small',
+          text: 'Editar',
+          onClick: () => navigate(`#/plan-editor/${plan.version}`)
+        }),
+        !isActive ? el('button', {
+          class: 'btn btn--ghost btn--small',
+          text: 'Eliminar',
+          onClick: () => {
+            if (confirm(`¿Eliminar la rutina "${plan.name}"? Las sesiones ya registradas con ella se quedan en el historial, pero ya no podrás editarla ni activarla.`)) {
+              state.deletePlan(plan.version);
+              toast('Rutina eliminada');
+              renderSettings(root, navigate);
+            }
+          }
+        }) : null
+      ])
+    ]);
+    plansWrap.appendChild(row);
+  });
+  plansWrap.appendChild(el('button', {
+    class: 'btn btn--secondary',
+    text: '+ Crear rutina nueva',
+    onClick: () => navigate('#/plan-editor/new')
+  }));
+  root.appendChild(plansWrap);
 
   // Fase actual
   const phaseWrap = el('div', { class: 'card' }, [
@@ -60,7 +104,7 @@ export function renderSettings(root, navigate) {
   const daysWrap = el('div', { class: 'card' }, [
     el('h4', { text: 'Días de entreno' })
   ]);
-  PLAN.days.forEach(day => {
+  activePlan.days.forEach(day => {
     const select = el('select', { class: 'settings-select' });
     WEEKDAY_NAMES.forEach((name, idx) => {
       select.appendChild(el('option', {
@@ -185,6 +229,7 @@ function handleImport(input, onDone) {
   reader.onload = () => {
     try {
       storage.importAll(reader.result);
+      state.resetCache();
       toast('Datos importados');
       onDone();
     } catch (err) {

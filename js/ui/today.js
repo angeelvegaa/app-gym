@@ -1,5 +1,5 @@
 import { el, clear } from './components.js';
-import { PLAN, PHASE_LABELS } from '../plan.js';
+import { PHASE_LABELS } from '../plan.js';
 import * as state from '../state.js';
 import { todayStr, getBlockPosition, getWeekType } from '../schedule.js';
 import { getExerciseHistory } from '../state.js';
@@ -12,7 +12,8 @@ export function renderToday(root, navigate) {
   const date = new Date();
   const dateStr = todayStr(date);
   const weekday = date.getDay();
-  const day = PLAN.days.find(d => settings.weekdays[d.id] === weekday) || null;
+  const activePlan = state.getActivePlan();
+  const day = activePlan.days.find(d => settings.weekdays[d.id] === weekday) || null;
   const { block, weekInBlock } = getBlockPosition(dateStr, settings.blockStart);
   const weekType = getWeekType(weekInBlock);
 
