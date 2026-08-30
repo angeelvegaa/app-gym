@@ -4,7 +4,8 @@
 const KEYS = {
   sessions: 'gym.sessions',
   settings: 'gym.settings',
-  plans: 'gym.plans'
+  plans: 'gym.plans',
+  weekBannerShown: 'gym.weekBannerShown'
 };
 
 const SCHEMA_VERSION = 1;
@@ -79,8 +80,20 @@ export function importAll(jsonString) {
   return true;
 }
 
+// 'YYYY-MM-DD' de la última vez que se mostró el aviso de cambio de semana,
+// para no repetirlo más de una vez el mismo día (raw, sin envolver: no hace
+// falta versionar un simple string suelto).
+export function loadWeekBannerShownDate() {
+  return readRaw(KEYS.weekBannerShown);
+}
+
+export function saveWeekBannerShownDate(dateStr) {
+  return writeRaw(KEYS.weekBannerShown, dateStr);
+}
+
 export function wipeAll() {
   localStorage.removeItem(KEYS.sessions);
   localStorage.removeItem(KEYS.settings);
   localStorage.removeItem(KEYS.plans);
+  localStorage.removeItem(KEYS.weekBannerShown);
 }

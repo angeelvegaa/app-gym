@@ -59,6 +59,26 @@ export function isDeloadWeek(weekInBlock) {
   return weekInBlock === 4;
 }
 
+const WEEK_BANNER_MESSAGES = {
+  1: 'Empieza el bloque — volumen base',
+  2: 'Semana 2 — toca apretar un poco más',
+  3: 'Semana 3 — semana de pico, dale caña',
+  4: 'Semana 4 — deload, toca bajar el ritmo'
+};
+
+export function getWeekBannerMessage(weekInBlock) {
+  return WEEK_BANNER_MESSAGES[weekInBlock] || WEEK_BANNER_MESSAGES[1];
+}
+
+// true solo el día exacto en que arranca una semana nueva del bloque (el
+// propio día de inicio del bloque incluido), para disparar el aviso una vez.
+export function isWeekChangeDay(dateStr, blockStartStr) {
+  const date = toDateOnly(dateStr);
+  const start = toDateOnly(blockStartStr);
+  const diffDays = Math.floor((date - start) / DAY_MS);
+  return diffDays >= 0 && diffDays % 7 === 0;
+}
+
 // Próximo lunes a partir de hoy (o el propio hoy si ya es lunes).
 export function nextMonday(date = new Date()) {
   const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());

@@ -7,6 +7,8 @@ import { renderRoutineDays, renderRoutineDetail } from './ui/routine.js';
 import { renderOnboarding } from './ui/onboarding.js';
 import { renderPlanEditor } from './ui/plan-editor.js';
 import * as state from './state.js';
+import * as storage from './storage.js';
+import { todayStr, isWeekChangeDay, getBlockPosition, getWeekBannerMessage } from './schedule.js';
 
 const root = document.getElementById('view');
 const navButtons = document.querySelectorAll('.nav-btn');
@@ -99,6 +101,39 @@ navButtons.forEach(btn => {
 
 window.addEventListener('hashchange', route);
 route();
+maybeShowWeekChangeBanner();
+
+// Aviso de que hoy arranca una semana nueva del bloque, solo el día exacto
+// en que cambia y solo la primera vez que se abre la app ese día (se
+// recuerda en localStorage la última fecha en que ya se mostró).
+function maybeShowWeekChangeBanner() {
+  if (!state.hasAnyPlan()) return;
+  const settings = state.getSettings();
+  const dateStr = todayStr();
+  if (!isWeekChangeDay(dateStr, settings.blockStart)) return;
+  if (storage.loadWeekBannerShownDate() === dateStr) return;
+
+  storage.saveWeekBannerShownDate(dateStr);
+  const { weekInBlock } = getBlockPosition(dateStr, settings.blockStart);
+  showWeekBanner(getWeekBannerMessage(weekInBlock));
+}
+
+function showWeekBanner(message) {
+  const banner = document.createElement('div');
+  banner.className = 'week-banner';
+  banner.setAttribute('role', 'status');
+  const text = document.createElement('span');
+  text.textContent = message;
+  const close = document.createElement('button');
+  close.className = 'week-banner-close';
+  close.type = 'button';
+  close.setAttribute('aria-label', 'Cerrar aviso');
+  close.textContent = '✕';
+  close.addEventListener('click', () => banner.remove());
+  banner.appendChild(text);
+  banner.appendChild(close);
+  document.body.appendChild(banner);
+}
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

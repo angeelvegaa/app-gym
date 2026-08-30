@@ -443,10 +443,15 @@ h4 { font-size: 15px; margin: 0 0 8px; }
 .routine-ex-name { font-size: 15px; font-weight: 600; }
 .routine-ex-detail { font-size: 13px; color: var(--text-muted); }
 
+.chart-range-selector { margin-bottom: 12px; }
+.chip--wide { width: auto; padding: 8px 12px; font-size: 13px; }
+
 .progress-chart { width: 100%; height: auto; }
 .progress-chart-line { fill: none; stroke: var(--primary); stroke-width: 2; }
 .progress-chart-point { fill: var(--primary); }
 .progress-chart-point--deload { fill: var(--warning); }
+.progress-chart-block-line { stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 3; }
+.progress-chart-block-label { fill: var(--text-muted); font-size: 9px; }
 
 /* ---- Ajustes ---- */
 
@@ -553,5 +558,33 @@ h4 { font-size: 15px; margin: 0 0 8px; }
   padding: 10px;
   font-size: 13px;
   z-index: 60;
+  cursor: pointer;
+}
+
+.week-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--warning);
+  color: #1a1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  z-index: 60;
+  padding-top: calc(10px + env(safe-area-inset-top));
+}
+.week-banner-close {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  line-height: 1;
+  padding: 4px;
   cursor: pointer;
 }
