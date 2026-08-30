@@ -163,6 +163,18 @@ function renderStrengthExercise(session, ex, onChange) {
     body.appendChild(renderSetRow(session, ex, entry, idx, last, onChange));
   });
 
+  body.appendChild(el('button', {
+    class: 'btn btn--ghost btn--small add-set-btn',
+    type: 'button',
+    text: '+ Añadir serie extra',
+    onClick: () => {
+      state.updateEntry(session.id, ex.id, e => {
+        e.sets.push({ status: 'pending', weight: null, reps: null });
+      });
+      onChange();
+    }
+  }));
+
   if (entry.sets.every(s => s.status !== 'pending')) {
     body.appendChild(el('div', { class: 'rpe-row' }, [
       el('span', { class: 'rpe-label', text: 'RPE del ejercicio' }),

@@ -314,6 +314,8 @@ h4 { font-size: 15px; margin: 0 0 8px; }
 }
 .set-skip--active { color: var(--warning); font-weight: 700; }
 
+.add-set-btn { display: block; margin: 6px auto 0; }
+
 .rpe-row {
   display: flex;
   flex-direction: column;
