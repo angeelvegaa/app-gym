@@ -65,6 +65,24 @@ test('vuelve a aparecer al día siguiente si también es cambio de semana', asyn
   await expect(page.locator('.week-banner')).toContainText('Semana 3');
 });
 
+test('el aviso sigue apareciendo el día correcto tras el cambio de hora de primavera', async ({ page }) => {
+  // Bloque arrancado antes del cambio de hora (29 marzo 2026 en España): al
+  // restar fechas locales, esa hora que se pierde puede colar un día de
+  // menos en el recuento y desplazar para siempre el día en que se dispara
+  // el aviso. blockStart un lunes de marzo; la semana 4 empieza ya en abril,
+  // con el cambio de hora de por medio.
+  const dstBlockStart = '2026-03-02'; // lunes
+  const blockTwoStart = addDays(dstBlockStart, 28); // 2026-03-30, justo tras el cambio de hora del día 29
+  await seedApp(page, { blockStart: dstBlockStart });
+  await page.clock.install({ time: atNoon(blockTwoStart) });
+
+  await page.goto('/');
+
+  const banner = page.locator('.week-banner');
+  await expect(banner).toBeVisible();
+  await expect(banner).toContainText('Empieza el bloque — volumen base');
+});
+
 test('se puede cerrar manualmente con la X', async ({ page }) => {
   const weekTwo = addDays(BLOCK_START, 7);
   await seedApp(page, { blockStart: BLOCK_START });

@@ -12,9 +12,12 @@ const WEEK_TYPES = {
 };
 
 function toDateOnly(dateStr) {
-  // dateStr 'YYYY-MM-DD' interpretado en local, sin desfase horario.
+  // dateStr 'YYYY-MM-DD' -> epoch UTC del día, para restar fechas sin que el
+  // cambio de hora (DST) meta o quite una hora entre medias y descuadre el
+  // recuento de días (con new Date(y, m-1, d) local, cruzar el cambio de
+  // primavera restaba 1h de más y el floor() perdía un día entero).
   const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(y, m - 1, d);
+  return Date.UTC(y, m - 1, d);
 }
 
 export function todayStr(date = new Date()) {
