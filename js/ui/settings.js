@@ -1,9 +1,13 @@
-import { el, clear, toast } from './components.js';
-import { PHASES, PHASE_LABELS } from '../plan.js';
+import { el, clear, toast, seedPlanCard } from './components.js';
+import { PHASES, PHASE_LABELS, SEED_PLANS } from '../plan.js';
 import * as state from '../state.js';
 import * as storage from '../storage.js';
 
 const WEEKDAY_NAMES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+// Se reinicia solo al navegar fuera de Ajustes (mismo patrón que
+// expandedId/expandedDayKey en otras pantallas): no hace falta persistirlo.
+let templatesOpen = false;
 
 export function renderSettings(root, navigate) {
   clear(root);
@@ -55,12 +59,49 @@ export function renderSettings(root, navigate) {
     ]);
     plansWrap.appendChild(row);
   });
-  plansWrap.appendChild(el('button', {
-    class: 'btn btn--secondary',
-    text: '+ Crear rutina nueva',
-    onClick: () => navigate('#/plan-editor/new')
-  }));
+  const plansActions = el('div', { class: 'plan-row-actions' }, [
+    el('button', {
+      class: 'btn btn--secondary',
+      text: '+ Crear rutina nueva',
+      onClick: () => navigate('#/plan-editor/new')
+    }),
+    el('button', {
+      class: 'btn btn--secondary',
+      text: templatesOpen ? 'Ocultar plantillas' : 'Elegir de las plantillas',
+      onClick: () => {
+        templatesOpen = !templatesOpen;
+        renderSettings(root, navigate);
+      }
+    })
+  ]);
+  plansWrap.appendChild(plansActions);
   root.appendChild(plansWrap);
+
+  // Tarjetas hermanas de "Mis rutinas", no anidadas dentro — mismo patrón
+  // visual que el onboarding (una tarjeta por plantilla).
+  if (templatesOpen) {
+    const savedNames = new Set(state.getAllPlans().map(p => p.name));
+    const available = SEED_PLANS.filter(seed => !savedNames.has(seed.name));
+    if (!available.length) {
+      root.appendChild(el('div', { class: 'card' }, [
+        el('p', { class: 'muted', text: 'Ya tienes copiadas todas las plantillas disponibles.' })
+      ]));
+    } else {
+      available.forEach(seed => {
+        root.appendChild(seedPlanCard(seed, {
+          buttonLabel: 'Usar esta plantilla',
+          onPick: () => {
+            if (!confirm(`¿Copiar "${seed.name}" a tus rutinas y activarla? Se usará para los entrenos nuevos a partir de ahora. Tu historial no se toca.`)) return;
+            const version = state.createPlan({ name: seed.name, description: seed.description, days: seed.days });
+            state.setActivePlanVersion(version);
+            toast(`"${seed.name}" activada`);
+            templatesOpen = false;
+            renderSettings(root, navigate);
+          }
+        }));
+      });
+    }
+  }
 
   // Fase actual
   const phaseWrap = el('div', { class: 'card' }, [

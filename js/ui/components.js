@@ -130,6 +130,26 @@ export function rpeChips({ value, onChange }) {
   return wrap;
 }
 
+// Tarjeta de una rutina de ejemplo del catálogo (ver plan.js: SEED_PLANS),
+// reutilizada tanto en el onboarding de dispositivo nuevo como en el
+// selector de plantillas de Ajustes — mismo aspecto, solo cambia el texto
+// del botón y qué pasa al elegirla.
+export function seedPlanCard(seed, { buttonLabel, onPick }) {
+  const card = el('div', { class: 'card' }, [
+    el('h3', { text: seed.name }),
+    el('p', { class: 'muted', text: `${seed.days.length} días · ${seed.days.map(d => d.name).join(', ')}` })
+  ]);
+  if (seed.description) {
+    card.appendChild(el('p', { class: 'muted onboarding-disclaimer', text: seed.description }));
+  }
+  card.appendChild(el('button', {
+    class: 'btn btn--primary',
+    text: buttonLabel,
+    onClick: () => onPick(seed)
+  }));
+  return card;
+}
+
 export function toast(message, ms = 2200) {
   const node = el('div', { class: 'toast', text: message });
   document.body.appendChild(node);

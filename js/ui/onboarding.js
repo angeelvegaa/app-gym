@@ -1,4 +1,4 @@
-import { el, clear, toast } from './components.js';
+import { el, clear, toast, seedPlanCard } from './components.js';
 import { SEED_PLANS } from '../plan.js';
 import * as state from '../state.js';
 
@@ -13,23 +13,14 @@ export function renderOnboarding(root, navigate) {
   root.appendChild(el('p', { class: 'muted', text: 'Elige una rutina para empezar. Puedes cambiarla, editarla o crear otras más adelante desde Ajustes.' }));
 
   SEED_PLANS.forEach(seed => {
-    const card = el('div', { class: 'card' }, [
-      el('h3', { text: seed.name }),
-      el('p', { class: 'muted', text: `${seed.days.length} días · ${seed.days.map(d => d.name).join(', ')}` })
-    ]);
-    if (seed.description) {
-      card.appendChild(el('p', { class: 'muted onboarding-disclaimer', text: seed.description }));
-    }
-    card.appendChild(el('button', {
-      class: 'btn btn--primary',
-      text: 'Usar esta rutina',
-      onClick: () => {
+    root.appendChild(seedPlanCard(seed, {
+      buttonLabel: 'Usar esta rutina',
+      onPick: () => {
         state.createPlan({ name: seed.name, description: seed.description, days: seed.days });
         toast(`"${seed.name}" activada`);
         navigate('#/today');
       }
     }));
-    root.appendChild(card);
   });
 
   root.appendChild(el('div', { class: 'card' }, [

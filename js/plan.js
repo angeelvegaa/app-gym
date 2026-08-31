@@ -236,6 +236,113 @@ const PLAN_ELBOW_DAYS = [
   }
 ];
 
+const PLAN_LEG_FOCUS_DAYS = [
+  {
+    id: 'pierna-cuadriceps-gluteo',
+    name: 'Pierna (cuádriceps y glúteo)',
+    weekday: 1, // lunes
+    warmup: [],
+    exercises: [
+      { id: 'sentadilla-trasera-goblet', name: 'Sentadilla trasera o goblet', type: 'strength',
+        sets: 4, repMin: 8, repMax: 10, rpe: 7.5, unit: 'kg', increment: 5 },
+      { id: 'prensa-pies-bajos', name: 'Prensa de piernas, pies bajos', type: 'strength',
+        sets: 3, repMin: 12, repMax: 15, rpe: 8, unit: 'kg', increment: 2.5 },
+      { id: 'zancadas-caminando-mancuernas', name: 'Zancadas caminando con mancuernas', type: 'strength', perSide: true,
+        sets: 3, repMin: 10, repMax: 12, rpe: 8, unit: 'kg', increment: 2 },
+      { id: 'extension-cuadriceps-maquina', name: 'Extensión de cuádriceps en máquina', type: 'strength',
+        sets: 3, repMin: 12, repMax: 15, rpe: 8, unit: 'kg', increment: 2.5 },
+      { id: 'hip-thrust-barra', name: 'Hip thrust con barra', type: 'strength',
+        sets: 3, repMin: 10, repMax: 12, rpe: 7.5, unit: 'kg', increment: 5 },
+      { id: 'plancha-toque-hombro', name: 'Plancha con toque de hombro', type: 'strength', repUnit: 's',
+        sets: 3, repMin: 30, repMax: 40, rpe: 7, unit: 'kg', increment: 2.5 }
+    ]
+  },
+  {
+    id: 'full-body-superior-core-1',
+    name: 'Full body superior + core',
+    weekday: 2, // martes
+    warmup: [],
+    exercises: [
+      { id: 'press-banca-mancuernas', name: 'Press banca o press con mancuernas', type: 'strength',
+        sets: 4, repMin: 8, repMax: 10, rpe: 7.5, unit: 'kg', increment: 2.5 },
+      { id: 'remo-barra-maquina', name: 'Remo con barra o en máquina', type: 'strength',
+        sets: 4, repMin: 10, repMax: 12, rpe: 7.5, unit: 'kg', increment: 2.5 },
+      { id: 'press-militar-mancuernas-fb', name: 'Press militar con mancuernas', type: 'strength',
+        sets: 3, repMin: 10, repMax: 12, rpe: 7.5, unit: 'kg', increment: 2 },
+      { id: 'jalon-dominadas-asistidas', name: 'Jalón al pecho o dominadas asistidas', type: 'strength',
+        sets: 3, repMin: 10, repMax: 12, rpe: 7.5, unit: 'kg', increment: 2.5 },
+      { id: 'elevaciones-laterales-fb1', name: 'Elevaciones laterales', type: 'strength',
+        sets: 3, repMin: 12, repMax: 15, rpe: 8, unit: 'kg', increment: 1 },
+      { id: 'pallof-press', name: 'Pallof press', type: 'strength', perSide: true,
+        sets: 3, repMin: 10, repMax: 12, rpe: 7, unit: 'kg', increment: 2 }
+    ]
+  },
+  {
+    id: 'pierna-cadera-femoral',
+    name: 'Pierna (cadera y femoral)',
+    weekday: 3, // miércoles
+    warmup: [],
+    exercises: [
+      { id: 'peso-muerto-rumano-barra-fb', name: 'Peso muerto rumano con barra', type: 'strength',
+        sets: 4, repMin: 8, repMax: 10, rpe: 7.5, unit: 'kg', increment: 5 },
+      { id: 'curl-femoral-tumbado-sentado', name: 'Curl femoral tumbado o sentado', type: 'strength',
+        sets: 3, repMin: 12, repMax: 15, rpe: 8, unit: 'kg', increment: 2.5 },
+      { id: 'sentadilla-bulgara-mancuernas-fb', name: 'Sentadilla búlgara con mancuernas', type: 'strength', perSide: true,
+        sets: 3, repMin: 10, repMax: 12, rpe: 8, unit: 'kg', increment: 2 },
+      { id: 'hip-thrust-una-pierna-banda', name: 'Hip thrust a una pierna o con banda', type: 'strength', perSide: true,
+        sets: 3, repMin: 12, repMax: 15, rpe: 8, unit: 'kg', increment: 2 },
+      { id: 'abduccion-cadera-maquina-banda', name: 'Abducción de cadera en máquina o banda', type: 'strength',
+        sets: 3, repMin: 15, repMax: 20, rpe: 8, unit: 'kg', increment: 2.5 },
+      { id: 'elevacion-piernas-banco-suelo', name: 'Elevación de piernas en banco/suelo', type: 'strength',
+        sets: 3, repMin: 12, repMax: 15, rpe: 7, unit: 'kg', increment: 2.5 }
+    ]
+  },
+  {
+    id: 'full-body-superior-core-2',
+    name: 'Full body superior + core (sin espalda)',
+    weekday: 4, // jueves
+    warmup: [],
+    exercises: [
+      { id: 'press-inclinado-mancuernas-fb', name: 'Press inclinado con mancuernas', type: 'strength',
+        sets: 4, repMin: 10, repMax: 12, rpe: 7.5, unit: 'kg', increment: 2 },
+      { id: 'press-hombro-maquina-fb', name: 'Press de hombro en máquina', type: 'strength',
+        sets: 4, repMin: 10, repMax: 12, rpe: 7.5, unit: 'kg', increment: 2.5 },
+      { id: 'elevaciones-laterales-fb2', name: 'Elevaciones laterales', type: 'strength',
+        sets: 3, repMin: 12, repMax: 15, rpe: 8, unit: 'kg', increment: 1 },
+      { id: 'aperturas-cruce-poleas-fb', name: 'Aperturas en máquina o cruce de poleas', type: 'strength',
+        sets: 3, repMin: 12, repMax: 15, rpe: 8, unit: 'kg', increment: 2.5 },
+      // Superserie (mismo patrón que Upper de PPL): dos ejercicios enlazados
+      // con el mismo grupo, no un único ejercicio de nombre compuesto.
+      { id: 'curl-biceps-superset-fb', name: 'Curl de bíceps (superserie)', type: 'strength', superset: 'A',
+        sets: 3, repMin: 12, repMax: 15, rpe: 8, unit: 'kg', increment: 1 },
+      { id: 'triceps-extension-superset-fb', name: 'Extensión de tríceps (superserie)', type: 'strength', superset: 'A',
+        sets: 3, repMin: 12, repMax: 15, rpe: 8, unit: 'kg', increment: 2.5 },
+      { id: 'plancha-lateral', name: 'Plancha lateral', type: 'strength', perSide: true, repUnit: 's',
+        sets: 3, repMin: 30, repMax: 40, rpe: 7, unit: 'kg', increment: 2.5 }
+    ]
+  },
+  {
+    id: 'pierna-gluteo-especifico',
+    name: 'Pierna (glúteo específico y accesorios)',
+    weekday: 6, // sábado
+    warmup: [],
+    exercises: [
+      { id: 'hip-thrust-barra-2', name: 'Hip thrust con barra', type: 'strength',
+        sets: 4, repMin: 8, repMax: 10, rpe: 8, unit: 'kg', increment: 5 },
+      { id: 'sentadilla-sumo-mancuerna-barra', name: 'Sentadilla sumo con mancuerna o barra', type: 'strength',
+        sets: 3, repMin: 10, repMax: 12, rpe: 7.5, unit: 'kg', increment: 2.5 },
+      { id: 'patada-gluteo-polea-maquina', name: 'Patada de glúteo en polea o máquina', type: 'strength', perSide: true,
+        sets: 3, repMin: 12, repMax: 15, rpe: 8, unit: 'kg', increment: 2.5 },
+      { id: 'step-up-mancuernas', name: 'Step-up con mancuernas', type: 'strength', perSide: true,
+        sets: 3, repMin: 10, repMax: 12, rpe: 8, unit: 'kg', increment: 2 },
+      { id: 'puente-gluteo-una-pierna', name: 'Puente de glúteo a una pierna', type: 'strength', perSide: true,
+        sets: 3, repMin: 12, repMax: 15, rpe: 8, unit: 'kg', increment: 2 },
+      { id: 'rueda-abdominal-crunch-polea', name: 'Rueda abdominal o crunch en polea', type: 'strength',
+        sets: 3, repMin: 10, repMax: 15, rpe: 7.5, unit: 'kg', increment: 2.5 }
+    ]
+  }
+];
+
 // Usado únicamente para migrar dispositivos que ya tenían historial guardado
 // con la única rutina fija de antes de este cambio (ver state.js). Su forma
 // (version, days, ids) debe quedarse igual para siempre, aunque el catálogo
@@ -254,6 +361,10 @@ export const SEED_PLANS = [
     name: 'Fuerza 5 días — adaptado codo',
     description: 'Punto de partida orientativo para entrenar con tendinitis de codo, no es indicación médica. Ajusta carga y ejercicios según tu evolución; si el dolor persiste, consulta con tu fisioterapeuta o médico.',
     days: PLAN_ELBOW_DAYS
+  },
+  {
+    name: 'Full body — énfasis pierna',
+    days: PLAN_LEG_FOCUS_DAYS
   }
 ];
 
