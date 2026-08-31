@@ -150,10 +150,23 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-function showUpdateBanner() {
+// Exportada solo para poder invocarla directamente desde los tests e2e
+// (disparar una actualización real de service worker no es viable con las
+// herramientas de test disponibles); en producción se llama igual que antes.
+export function showUpdateBanner() {
   const banner = document.createElement('div');
   banner.className = 'update-banner';
-  banner.textContent = 'Hay una versión nueva disponible. Toca para actualizar.';
+  banner.setAttribute('role', 'status');
+  const text = document.createElement('span');
+  text.textContent = 'Hay una versión nueva disponible.';
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'update-banner-btn';
+  button.textContent = 'Actualizar';
+  // Todo el banner recarga, no solo el botón: en un aviso de una sola línea
+  // el área táctil grande evita fallos de precisión al tocar.
   banner.addEventListener('click', () => location.reload());
+  banner.appendChild(text);
+  banner.appendChild(button);
   document.body.appendChild(banner);
 }
