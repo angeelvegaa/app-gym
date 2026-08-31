@@ -136,24 +136,48 @@ function showWeekBanner(message) {
 }
 
 if ('serviceWorker' in navigator) {
+  let reloadedAfterUpdate = false;
+  // clients.claim() en el activate también dispara "controllerchange" la
+  // primerísima vez que el SW reclama una página que aún no tenía
+  // controlador (instalación inicial, no una actualización) — hay que
+  // ignorar ese caso y recargar solo cuando ya había un controlador antes,
+  // es decir, cuando el cambio viene de pulsar "Actualizar" de verdad.
+  const hadControllerAtLoad = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadControllerAtLoad || reloadedAfterUpdate) return;
+    reloadedAfterUpdate = true;
+    location.reload();
+  });
+
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').then(reg => {
+      // Puede que la versión nueva ya terminara de instalar en una sesión
+      // anterior (p. ej. con la app en segundo plano) y se quedara
+      // esperando sin que llegara a mostrarse el aviso entonces.
+      if (reg.waiting && navigator.serviceWorker.controller) showUpdateBanner(reg);
+
       reg.addEventListener('updatefound', () => {
         const newWorker = reg.installing;
         newWorker.addEventListener('statechange', () => {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            showUpdateBanner();
+            showUpdateBanner(reg);
           }
         });
       });
+
+      // Las comprobaciones automáticas del navegador al navegar no siempre
+      // son puntuales (sobre todo como PWA instalada en iOS); se refuerzan
+      // con una comprobación propia de vez en cuando.
+      setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000);
     }).catch(err => console.error('SW register failed', err));
   });
 }
 
-// Exportada solo para poder invocarla directamente desde los tests e2e
-// (disparar una actualización real de service worker no es viable con las
-// herramientas de test disponibles); en producción se llama igual que antes.
-export function showUpdateBanner() {
+// `reg` recibe el aviso en producción para poder pedirle que active la
+// versión nueva. Se puede omitir al invocarla directamente desde los tests
+// e2e (disparar una actualización real de service worker no es viable con
+// las herramientas de test disponibles): en ese caso recarga directamente.
+export function showUpdateBanner(reg) {
   const banner = document.createElement('div');
   banner.className = 'update-banner';
   banner.setAttribute('role', 'status');
@@ -163,9 +187,12 @@ export function showUpdateBanner() {
   button.type = 'button';
   button.className = 'update-banner-btn';
   button.textContent = 'Actualizar';
-  // Todo el banner recarga, no solo el botón: en un aviso de una sola línea
-  // el área táctil grande evita fallos de precisión al tocar.
-  banner.addEventListener('click', () => location.reload());
+  // Todo el banner reacciona, no solo el botón: en un aviso de una sola
+  // línea el área táctil grande evita fallos de precisión al tocar.
+  banner.addEventListener('click', () => {
+    if (reg && reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
+    else location.reload();
+  });
   banner.appendChild(text);
   banner.appendChild(button);
   document.body.appendChild(banner);

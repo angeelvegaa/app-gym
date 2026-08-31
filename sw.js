@@ -1,7 +1,7 @@
 // Service worker: cache-first sobre el shell de la app, versionado.
 // Sube CACHE_VERSION en cada despliegue para que el móvil recoja los cambios.
 
-const CACHE_VERSION = 'gym-v11';
+const CACHE_VERSION = 'gym-v12';
 
 const SHELL_FILES = [
   './',
@@ -29,10 +29,14 @@ const SHELL_FILES = [
 ];
 
 self.addEventListener('install', (event) => {
+  // Sin skipWaiting: la nueva versión se queda en "esperando" hasta que el
+  // usuario toque "Actualizar" en el aviso. Si se activara sola en cuanto
+  // termina de instalar (sobre todo con la pestaña en segundo plano, como
+  // en iOS), podía tomar el control sin que a la página le diera tiempo a
+  // mostrar el aviso primero.
   event.waitUntil(
     caches.open(CACHE_VERSION)
       .then(cache => cache.addAll(SHELL_FILES))
-      .then(() => self.skipWaiting())
   );
 });
 
@@ -42,6 +46,10 @@ self.addEventListener('activate', (event) => {
       .then(keys => Promise.all(keys.filter(k => k !== CACHE_VERSION).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', (event) => {
