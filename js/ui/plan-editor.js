@@ -1,4 +1,4 @@
-import { el, clear, toast } from './components.js';
+import { el, clear, toast, formatRepRange } from './components.js';
 import * as state from '../state.js';
 
 // Editor de rutinas: crear una desde cero o editar una ya guardada, sin
@@ -204,8 +204,9 @@ function renderWarmupRow(day, w, rerender) {
 function summarizeDraftExercise(ex) {
   if (ex.type === 'checkbox') return 'Marcar hecho';
   const sets = ex.sets ?? '?';
-  const reps = `${ex.repMin ?? '?'}-${ex.repMax ?? '?'}`;
-  return `${sets} series · ${reps} · RPE ${ex.rpe ?? '?'}`;
+  const reps = (ex.repMin != null && ex.repMax != null) ? formatRepRange(ex) : `${ex.repMin ?? '?'}-${ex.repMax ?? '?'}`;
+  const rpe = ex.rpe != null ? `RPE ${ex.rpe}` : 'sin RPE fijo';
+  return `${sets} series · ${reps} · ${rpe}`;
 }
 
 function renderExerciseCard(day, ex, rerender) {
@@ -243,7 +244,7 @@ function renderExerciseCard(day, ex, rerender) {
     body.appendChild(numberField('Series', ex.sets, (v) => { ex.sets = v; }));
     body.appendChild(numberField('Reps mínimas', ex.repMin, (v) => { ex.repMin = v; }));
     body.appendChild(numberField('Reps máximas', ex.repMax, (v) => { ex.repMax = v; }));
-    body.appendChild(numberField('RPE objetivo', ex.rpe, (v) => { ex.rpe = v; }, 0.5));
+    body.appendChild(numberField('RPE objetivo (vacío = sin RPE fijo todavía)', ex.rpe, (v) => { ex.rpe = v; }, 0.5));
     body.appendChild(textField('Unidad de peso (kg, m...)', ex.unit ?? 'kg', (v) => { ex.unit = v || 'kg'; }));
     body.appendChild(numberField('Incremento sugerido', ex.increment, (v) => { ex.increment = v; }, 0.5));
     body.appendChild(textField('Unidad de la repetición (vacío = "reps"; o "s", "m"...)', ex.repUnit ?? '', (v) => { ex.repUnit = v || undefined; }));
@@ -280,8 +281,10 @@ function validateDraft() {
     for (const ex of day.exercises) {
       if (!ex.name.trim()) return `Hay un ejercicio sin nombre en "${day.name}".`;
       if (ex.type === 'strength') {
-        if (!ex.sets || !ex.repMin || !ex.repMax || ex.rpe == null) {
-          return `Revisa series/reps/RPE de "${ex.name}" en "${day.name}".`;
+        // El RPE objetivo puede dejarse vacío (sin referencia todavía); el
+        // resto de campos siguen siendo obligatorios.
+        if (!ex.sets || !ex.repMin || !ex.repMax) {
+          return `Revisa series/reps de "${ex.name}" en "${day.name}".`;
         }
       }
     }

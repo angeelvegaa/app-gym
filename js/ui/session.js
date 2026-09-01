@@ -1,4 +1,4 @@
-import { el, clear, numberStepper, rpeChips, toast } from './components.js';
+import { el, clear, numberStepper, rpeChips, toast, formatRepRange } from './components.js';
 import * as state from '../state.js';
 import { getTargetRpe, getSuggestedSets, isDeloadWeek } from '../schedule.js';
 
@@ -156,7 +156,7 @@ function renderStrengthExercise(session, ex, onChange) {
 
   const hints = [];
   if (isDeloadWeek(session.weekInBlock)) hints.push(`Deload: prueba con ${suggestedSets} series`);
-  hints.push(`Objetivo: ${ex.repMin}-${ex.repMax}${ex.repUnit || ''} · RPE ${targetRpe}`);
+  hints.push(`Objetivo: ${formatRepRange(ex)}${targetRpe != null ? ` · RPE ${targetRpe}` : ''}`);
   body.appendChild(el('p', { class: 'exercise-hint', text: hints.join(' · ') }));
 
   entry.sets.forEach((set, idx) => {

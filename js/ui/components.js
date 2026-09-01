@@ -60,6 +60,15 @@ export function clear(node) {
   while (node.firstChild) node.removeChild(node.firstChild);
 }
 
+// "8-12" para un rango normal; colapsa a "30s" (sin guion) cuando el
+// ejercicio tiene un objetivo fijo en vez de un rango (repMin === repMax,
+// típico en series de tiempo como "Antebrazo en barra": 30s, no "30-30s").
+export function formatRepRange(ex) {
+  const unit = ex.repUnit || '';
+  if (ex.repMin === ex.repMax) return `${ex.repMin}${unit}`;
+  return `${ex.repMin}-${ex.repMax}${unit}`;
+}
+
 // Stepper numérico grande: -  [valor]  +. Tap en el valor abre teclado nativo.
 export function numberStepper({ value, step, unit, onChange, min = 0 }) {
   const display = el('input', {

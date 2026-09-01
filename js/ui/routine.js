@@ -1,4 +1,4 @@
-import { el, clear } from './components.js';
+import { el, clear, formatRepRange } from './components.js';
 import * as state from '../state.js';
 import { getSettings, getPlan, getAllPlanVersions } from '../state.js';
 
@@ -108,6 +108,6 @@ function formatExerciseDetail(ex) {
   if (ex.type === 'checkbox') return '';
   const perSide = ex.perSide ? ' por lado' : '';
   const sets = `${ex.sets} series${perSide}`;
-  const reps = `${ex.repMin}-${ex.repMax}${ex.repUnit || ''}`;
-  return `${sets} · ${reps} · RPE ${ex.rpe}`;
+  const rpe = ex.rpe != null ? ` · RPE ${ex.rpe}` : '';
+  return `${sets} · ${formatRepRange(ex)}${rpe}`;
 }

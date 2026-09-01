@@ -42,6 +42,10 @@ const PHASE_RULES = {
 // exercise: definición del ejercicio (repMin, repMax, rpe, increment...).
 // phase: 'definicion' | 'volumen' | 'mantenimiento'.
 export function getSuggestions(history, exercise, phase, targetRpe) {
+  // Sin RPE objetivo todavía (ejercicio recién añadido, sin sesiones de
+  // referencia) ninguna de las reglas de abajo tiene con qué comparar.
+  if (targetRpe == null) return [];
+
   // Un bloque saltado (viaje, lesión...) o un día no seguido al 100% corta
   // cualquier racha: las reglas de estancamiento/progreso solo miran
   // sesiones reales y de confianza desde el último de estos huecos, para no
