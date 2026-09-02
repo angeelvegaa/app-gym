@@ -120,10 +120,10 @@ function roundStep(n) {
   return Math.round(n * 100) / 100;
 }
 
-// Chips de RPE 5-10, un tap selecciona.
+// Chips de RPE 1-10, un tap selecciona.
 export function rpeChips({ value, onChange }) {
   const wrap = el('div', { class: 'rpe-chips' });
-  for (let r = 5; r <= 10; r++) {
+  for (let r = 1; r <= 10; r++) {
     const chip = el('button', {
       class: `chip${value === r ? ' chip--active' : ''}`,
       type: 'button',

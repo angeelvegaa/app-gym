@@ -45,14 +45,14 @@ export function getWeekType(weekInBlock) {
   return WEEK_TYPES[weekInBlock] || WEEK_TYPES[1];
 }
 
-// baseRpe puede ser .5 (p.ej. 7.5); se limita siempre a [4, 10]. Un
+// baseRpe puede ser .5 (p.ej. 7.5); se limita siempre a [1, 10]. Un
 // ejercicio sin RPE objetivo todavía (baseRpe null, p. ej. recién añadido
 // sin sesiones de referencia) no tiene RPE "de esta semana" que calcular.
 export function getTargetRpe(baseRpe, weekInBlock) {
   if (baseRpe == null) return null;
   const shift = getWeekType(weekInBlock).rpeShift;
   const value = baseRpe + shift;
-  return Math.min(10, Math.max(4, value));
+  return Math.min(10, Math.max(1, value));
 }
 
 // En deload (semana 4) se sugiere una serie menos, mínimo 2.

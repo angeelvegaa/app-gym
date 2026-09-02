@@ -203,7 +203,10 @@ const PLAN_ELBOW_DAYS = [
     exercises: [
       { id: 'press-inclinado-mancuernas-neutro-codo', name: 'Press inclinado con mancuernas, agarre neutro si es posible', type: 'strength',
         sets: 4, repMin: 8, repMax: 12, rpe: 7, unit: 'kg', increment: 2 },
-      { id: 'remo-maquina-neutro-upper-codo', name: 'Remo en máquina, agarre neutro', type: 'strength',
+      // Mismo id que en Pull (elbow-safe): mismo ejercicio repetido en dos
+      // días, para que Progreso junte el histórico de ambos en vez de
+      // partirlo en dos.
+      { id: 'remo-maquina-neutro-codo', name: 'Remo en máquina, agarre neutro', type: 'strength',
         sets: 4, repMin: 8, repMax: 12, rpe: 7, unit: 'kg', increment: 2.5 },
       { id: 'press-hombro-maquina-codo', name: 'Press de hombro en máquina', type: 'strength',
         sets: 3, repMin: 8, repMax: 12, rpe: 7.5, unit: 'kg', increment: 2.5 },
@@ -251,6 +254,9 @@ const PLAN_LEG_FOCUS_DAYS = [
         sets: 3, repMin: 10, repMax: 12, rpe: 8, unit: 'kg', increment: 2 },
       { id: 'extension-cuadriceps-maquina', name: 'Extensión de cuádriceps en máquina', type: 'strength',
         sets: 3, repMin: 12, repMax: 15, rpe: 8, unit: 'kg', increment: 2.5 },
+      // Mismo id que en "Pierna (glúteo específico y accesorios)": mismo
+      // ejercicio repetido, para que Progreso junte el histórico de ambos
+      // días en vez de partirlo en dos.
       { id: 'hip-thrust-barra', name: 'Hip thrust con barra', type: 'strength',
         sets: 3, repMin: 10, repMax: 12, rpe: 7.5, unit: 'kg', increment: 5 },
       { id: 'plancha-toque-hombro', name: 'Plancha con toque de hombro', type: 'strength', repUnit: 's',
@@ -271,7 +277,10 @@ const PLAN_LEG_FOCUS_DAYS = [
         sets: 3, repMin: 10, repMax: 12, rpe: 7.5, unit: 'kg', increment: 2 },
       { id: 'jalon-dominadas-asistidas', name: 'Jalón al pecho o dominadas asistidas', type: 'strength',
         sets: 3, repMin: 10, repMax: 12, rpe: 7.5, unit: 'kg', increment: 2.5 },
-      { id: 'elevaciones-laterales-fb1', name: 'Elevaciones laterales', type: 'strength',
+      // Mismo id que en el día "Full body superior + core (sin espalda)":
+      // mismo ejercicio repetido, para que Progreso junte el histórico de
+      // ambos días en vez de partirlo en dos.
+      { id: 'elevaciones-laterales-fb', name: 'Elevaciones laterales', type: 'strength',
         sets: 3, repMin: 12, repMax: 15, rpe: 8, unit: 'kg', increment: 1 },
       { id: 'pallof-press', name: 'Pallof press', type: 'strength', perSide: true,
         sets: 3, repMin: 10, repMax: 12, rpe: 7, unit: 'kg', increment: 2 }
@@ -307,7 +316,7 @@ const PLAN_LEG_FOCUS_DAYS = [
         sets: 4, repMin: 10, repMax: 12, rpe: 7.5, unit: 'kg', increment: 2 },
       { id: 'press-hombro-maquina-fb', name: 'Press de hombro en máquina', type: 'strength',
         sets: 4, repMin: 10, repMax: 12, rpe: 7.5, unit: 'kg', increment: 2.5 },
-      { id: 'elevaciones-laterales-fb2', name: 'Elevaciones laterales', type: 'strength',
+      { id: 'elevaciones-laterales-fb', name: 'Elevaciones laterales', type: 'strength',
         sets: 3, repMin: 12, repMax: 15, rpe: 8, unit: 'kg', increment: 1 },
       { id: 'aperturas-cruce-poleas-fb', name: 'Aperturas en máquina o cruce de poleas', type: 'strength',
         sets: 3, repMin: 12, repMax: 15, rpe: 8, unit: 'kg', increment: 2.5 },
@@ -327,7 +336,7 @@ const PLAN_LEG_FOCUS_DAYS = [
     weekday: 6, // sábado
     warmup: [],
     exercises: [
-      { id: 'hip-thrust-barra-2', name: 'Hip thrust con barra', type: 'strength',
+      { id: 'hip-thrust-barra', name: 'Hip thrust con barra', type: 'strength',
         sets: 4, repMin: 8, repMax: 10, rpe: 8, unit: 'kg', increment: 5 },
       { id: 'sentadilla-sumo-mancuerna-barra', name: 'Sentadilla sumo con mancuerna o barra', type: 'strength',
         sets: 3, repMin: 10, repMax: 12, rpe: 7.5, unit: 'kg', increment: 2.5 },
@@ -349,13 +358,25 @@ const PLAN_LEG_FOCUS_DAYS = [
 // de semillas de abajo cambie.
 export const LEGACY_MIGRATION_PLAN = { version: 1, name: 'PPL + Upper/Lower', days: PLAN_PPL_DAYS };
 
+// Copia de PLAN_PPL_DAYS para el catálogo de plantillas, con los ids de los
+// ejercicios que se repetían en más de un día unificados: "Extensión de
+// cuádriceps ligera" y "Mi rutina de abs (5 min)" estaban en Lower y en
+// Legs con ids distintos, así que Progreso los trataba como dos ejercicios
+// separados en vez de uno con todo su histórico junto (mismo patrón que
+// ELBOW_REHAB_BLOCK: mismo id => mismo histórico). No se toca
+// PLAN_PPL_DAYS directamente: LEGACY_MIGRATION_PLAN necesita que sus ids
+// se queden exactamente iguales para siempre (ver arriba).
+const SEED_PPL_DAYS = JSON.parse(JSON.stringify(PLAN_PPL_DAYS));
+SEED_PPL_DAYS.find(d => d.id === 'legs').exercises.find(e => e.id === 'extension-cuadriceps-lig-legs').id = 'extension-cuadriceps-lig';
+SEED_PPL_DAYS.find(d => d.id === 'legs').exercises.find(e => e.id === 'abs-legs').id = 'abs-lower';
+
 // Rutinas de ejemplo que se ofrecen al configurar la app por primera vez en
 // un dispositivo nuevo, o para crear una rutina copiando una de estas como
 // punto de partida. Sin version: se asigna al copiarla a un dispositivo.
 export const SEED_PLANS = [
   {
     name: 'PPL + Upper/Lower',
-    days: PLAN_PPL_DAYS
+    days: SEED_PPL_DAYS
   },
   {
     name: 'Fuerza 5 días — adaptado codo',

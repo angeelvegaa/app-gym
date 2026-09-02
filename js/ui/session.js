@@ -201,6 +201,14 @@ function summaryText(entry, ex) {
   return `${doneSets.length}/${entry.sets.length} series${maxW != null ? ` · ${maxW}${ex.unit}` : ''}${rpeTxt}`;
 }
 
+// El valor mostrado ahora mismo en un numberStepper (componentes.js),
+// leyendo el <input> directamente en vez de fiarse del último 'change'
+// que haya disparado.
+function readStepperValue(stepperEl) {
+  const input = stepperEl.querySelector('.stepper-value');
+  return input.value === '' ? null : Number(input.value);
+}
+
 function renderSetRow(session, ex, entry, idx, last, onChange) {
   const set = entry.sets[idx];
   const lastSet = last && last.sets && last.sets[idx];
@@ -238,13 +246,20 @@ function renderSetRow(session, ex, entry, idx, last, onChange) {
     'aria-label': 'marcar serie hecha',
     text: set.status === 'done' ? '✓' : '',
     onClick: () => {
+      // Lee el valor tal cual está en el campo AHORA, sin esperar a que su
+      // propio 'change' se haya disparado antes (con teclado numérico
+      // móvil, tocar este botón directamente sin cerrar antes el teclado
+      // puede llegar antes que el blur/change del campo — sobre todo en
+      // WebKit — y perder lo escrito si dependemos de ese evento).
+      const liveWeight = readStepperValue(weightStepper);
+      const liveReps = readStepperValue(repsStepper);
       state.updateEntry(session.id, ex.id, e => {
         const s = e.sets[idx];
         if (s.status === 'done') {
           s.status = 'pending';
         } else {
-          if (s.weight == null && lastSet) s.weight = lastSet.weight;
-          if (s.reps == null && lastSet) s.reps = lastSet.reps;
+          s.weight = liveWeight;
+          s.reps = liveReps;
           s.status = 'done';
         }
       });
