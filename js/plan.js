@@ -383,12 +383,12 @@ function moveToBodyweightExercise(day, warmupId, newId, fields) {
   const pushDay = SEED_PPL_DAYS.find(d => d.id === 'push');
   const upperDay = SEED_PPL_DAYS.find(d => d.id === 'upper');
   // "1 rep" = una vuelta completa a los 6 movimientos (no un ejercicio por
-  // movimiento); por defecto 1 serie x 1 vuelta, pero se puede registrar
-  // más si se hace más de una vuelta ese día.
+  // movimiento); por defecto 2 series x 10-12 vueltas, pero se puede
+  // registrar otra cifra si un día se hacen más o menos vueltas.
   moveToBodyweightExercise(pushDay, 'fondos-ligeros-push', 'fondos-ligeros', { sets: 2, repMin: 8, repMax: 10, rpe: null });
-  moveToBodyweightExercise(pushDay, 'six-way', 'six-way', { sets: 1, repMin: 1, repMax: 1, rpe: null });
+  moveToBodyweightExercise(pushDay, 'six-way', 'six-way', { sets: 2, repMin: 10, repMax: 12, rpe: null });
   moveToBodyweightExercise(upperDay, 'fondos-ligeros-upper', 'fondos-ligeros', { sets: 2, repMin: 8, repMax: 10, rpe: null });
-  moveToBodyweightExercise(upperDay, 'six-way-upper', 'six-way', { sets: 1, repMin: 1, repMax: 1, rpe: null });
+  moveToBodyweightExercise(upperDay, 'six-way-upper', 'six-way', { sets: 2, repMin: 10, repMax: 12, rpe: null });
 }
 
 // Rutinas de ejemplo que se ofrecen al configurar la app por primera vez en
