@@ -149,8 +149,12 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
 
+  // updateViaCache: 'none' evita que CUALQUIER caché (no solo el SW propio)
+  // se interponga al comprobar si sw.js cambió — por defecto el script
+  // principal ya debería ignorar la caché HTTP al comprobar, pero esto es
+  // defensivo contra implementaciones menos estrictas (visto en WebKit).
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').then(reg => {
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(reg => {
       // Puede que la versión nueva ya terminara de instalar en una sesión
       // anterior (p. ej. con la app en segundo plano) y se quedara
       // esperando sin que llegara a mostrarse el aviso entonces.
@@ -165,10 +169,18 @@ if ('serviceWorker' in navigator) {
         });
       });
 
-      // Las comprobaciones automáticas del navegador al navegar no siempre
-      // son puntuales (sobre todo como PWA instalada en iOS); se refuerzan
-      // con una comprobación propia de vez en cuando.
-      setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000);
+      // La comprobación automática del navegador al registrar/navegar no
+      // siempre es puntual (sobre todo como PWA instalada en iOS, donde es
+      // conocido que puede tardar varias aperturas en darse cuenta). Se
+      // refuerza pidiéndolo explícitamente: al registrar, cada vez que la
+      // app vuelve a primer plano (abrir desde el icono, volver de otra
+      // app...) y de vez en cuando mientras se queda abierta.
+      const checkForUpdate = () => reg.update().catch(() => {});
+      checkForUpdate();
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') checkForUpdate();
+      });
+      setInterval(checkForUpdate, 60 * 60 * 1000);
     }).catch(err => console.error('SW register failed', err));
   });
 }
