@@ -1,6 +1,7 @@
 import { el, clear, numberStepper, rpeChips, toast, formatRepRange } from './components.js';
 import * as state from '../state.js';
 import { getTargetRpe, getSuggestedSets, isDeloadWeek } from '../schedule.js';
+import { effectiveRpe, formatRpe } from '../suggestions.js';
 
 // Un solo ejercicio expandido a la vez, guardado fuera del render para sobrevivir a redibujados.
 let expandedId = null;
@@ -169,27 +170,35 @@ function renderStrengthExercise(session, ex, onChange) {
     text: '+ Añadir serie extra',
     onClick: () => {
       state.updateEntry(session.id, ex.id, e => {
-        e.sets.push({ status: 'pending', weight: null, reps: null });
+        e.sets.push({ status: 'pending', weight: null, reps: null, rpe: null });
       });
       onChange();
     }
   }));
 
-  if (entry.sets.every(s => s.status !== 'pending')) {
-    body.appendChild(el('div', { class: 'rpe-row' }, [
-      el('span', { class: 'rpe-label', text: 'RPE del ejercicio' }),
-      rpeChips({
-        value: entry.rpe,
-        onChange: (r) => {
-          state.updateEntry(session.id, ex.id, e => { e.rpe = r; });
-          onChange();
-        }
-      })
-    ]));
-  }
+  body.appendChild(renderNoteField(session, ex, entry));
 
   wrap.appendChild(body);
   return wrap;
+}
+
+// Nota corta y opcional sobre cómo ha ido el ejercicio en conjunto (p. ej.
+// "hombro molestaba un poco"). Se guarda en cada pulsación (evento 'input',
+// no 'change'/blur) porque en iOS el botón "Terminar entreno" puede robar el
+// foco antes de que el blur llegue a dispararse — ver el comentario sobre
+// WebKit en components.js.
+function renderNoteField(session, ex, entry) {
+  const input = el('input', {
+    class: 'exercise-note-input',
+    type: 'text',
+    maxlength: '140',
+    placeholder: 'Nota opcional: ¿cómo ha ido?',
+    value: entry.note || ''
+  });
+  input.addEventListener('input', () => {
+    state.updateEntry(session.id, ex.id, e => { e.note = input.value.trim() ? input.value : null; });
+  });
+  return el('div', { class: 'exercise-note-row' }, [input]);
 }
 
 function summaryText(entry, ex) {
@@ -197,7 +206,8 @@ function summaryText(entry, ex) {
   if (!doneSets.length) return `${entry.sets.length} series`;
   const weights = doneSets.map(s => s.weight).filter(w => w != null);
   const maxW = weights.length ? Math.max(...weights) : null;
-  const rpeTxt = entry.rpe != null ? ` · RPE ${entry.rpe}` : '';
+  const avgRpe = effectiveRpe(entry);
+  const rpeTxt = avgRpe != null ? ` · RPE ${formatRpe(avgRpe)}` : '';
   return `${doneSets.length}/${entry.sets.length} series${maxW != null ? ` · ${maxW}${ex.unit}` : ''}${rpeTxt}`;
 }
 
@@ -281,6 +291,19 @@ function renderSetRow(session, ex, entry, idx, last, onChange) {
     }
   });
 
+  // El RPE de la serie se pide justo al marcarla hecha (igual que peso y
+  // reps), no antes: sin esfuerzo real todavía no hay nada que valorar.
+  const rpeRow = set.status === 'done' ? el('div', { class: 'set-row-rpe' }, [
+    el('span', { class: 'rpe-label', text: 'RPE' }),
+    rpeChips({
+      value: set.rpe,
+      compact: true,
+      onChange: (r) => {
+        state.updateEntry(session.id, ex.id, e => { e.sets[idx].rpe = r; });
+      }
+    })
+  ]) : null;
+
   return el('div', { class: `set-row set-row--${set.status}` }, [
     el('div', { class: 'set-row-top' }, [
       el('span', { class: 'set-number', text: `#${idx + 1}` }),
@@ -290,6 +313,7 @@ function renderSetRow(session, ex, entry, idx, last, onChange) {
     el('div', { class: 'set-row-bottom' }, [
       skipBtn,
       checkBtn
-    ])
+    ]),
+    rpeRow
   ]);
 }

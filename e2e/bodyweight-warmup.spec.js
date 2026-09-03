@@ -71,16 +71,16 @@ test('registrar Six Way y Fondos en paralelas como series/reps sin peso, en Push
   // Persistido sin peso (weight: null) y con las reps tal cual se escribieron.
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('gym.sessions')).sessions);
   expect(saved['2026-01-05_push'].entries['six-way'].sets).toEqual([
-    { status: 'done', weight: null, reps: 10 },
-    { status: 'done', weight: null, reps: 11 }
+    { status: 'done', weight: null, reps: 10, rpe: null },
+    { status: 'done', weight: null, reps: 11, rpe: null }
   ]);
   expect(saved['2026-01-05_push'].entries['fondos-ligeros'].sets).toEqual([
-    { status: 'done', weight: null, reps: 9 },
-    { status: 'done', weight: null, reps: 8 }
+    { status: 'done', weight: null, reps: 9, rpe: null },
+    { status: 'done', weight: null, reps: 8, rpe: null }
   ]);
   expect(saved['2026-01-08_upper'].entries['six-way'].sets).toEqual([
-    { status: 'done', weight: null, reps: 11 },
-    { status: 'done', weight: null, reps: 12 }
+    { status: 'done', weight: null, reps: 11, rpe: null },
+    { status: 'done', weight: null, reps: 12, rpe: null }
   ]);
 
   // Progreso: ambos aparecen en la lista (antes, tipo "warmup", no aparecían).

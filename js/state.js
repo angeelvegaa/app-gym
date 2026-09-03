@@ -252,8 +252,9 @@ function emptyEntryFor(exercise) {
     return { done: false, weight: null };
   }
   return {
-    sets: Array.from({ length: exercise.sets }, () => ({ status: 'pending', weight: null, reps: null })),
-    rpe: null
+    sets: Array.from({ length: exercise.sets }, () => ({ status: 'pending', weight: null, reps: null, rpe: null })),
+    rpe: null,
+    note: null
   };
 }
 

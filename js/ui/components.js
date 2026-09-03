@@ -120,12 +120,13 @@ function roundStep(n) {
   return Math.round(n * 100) / 100;
 }
 
-// Chips de RPE 1-10, un tap selecciona.
-export function rpeChips({ value, onChange }) {
-  const wrap = el('div', { class: 'rpe-chips' });
+// Chips de RPE 1-10, un tap selecciona. `compact` = versión estrecha para
+// que quepan dentro de una fila de serie individual en móvil.
+export function rpeChips({ value, onChange, compact = false }) {
+  const wrap = el('div', { class: `rpe-chips${compact ? ' rpe-chips--compact' : ''}` });
   for (let r = 1; r <= 10; r++) {
     const chip = el('button', {
-      class: `chip${value === r ? ' chip--active' : ''}`,
+      class: `chip${compact ? ' chip--compact' : ''}${value === r ? ' chip--active' : ''}`,
       type: 'button',
       text: String(r),
       onClick: () => {

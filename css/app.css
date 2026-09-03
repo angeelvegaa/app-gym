@@ -316,6 +316,21 @@ h4 { font-size: 15px; margin: 0 0 8px; }
 
 .add-set-btn { display: block; margin: 6px auto 0; }
 
+.exercise-note-row { margin-top: 12px; }
+.exercise-note-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+.exercise-note-input::placeholder { color: var(--text-muted); }
+
+.exercise-note-detail { font-style: italic; }
+
 .rpe-row {
   display: flex;
   flex-direction: column;
@@ -339,6 +354,18 @@ h4 { font-size: 15px; margin: 0 0 8px; }
   cursor: pointer;
 }
 .chip--active { background: var(--chip-active-bg); color: var(--chip-active-text); }
+
+.rpe-chips--compact { gap: 4px; }
+.chip--compact { width: 26px; padding: 6px 0; font-size: 12px; border-radius: 8px; }
+
+.set-row-rpe {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  overflow-x: auto;
+}
+.set-row-rpe .rpe-label { flex-shrink: 0; }
 
 .simple-item { margin-bottom: 10px; }
 .simple-item .btn--check {

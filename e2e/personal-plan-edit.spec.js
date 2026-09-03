@@ -133,9 +133,9 @@ test('añade "Antebrazo en barra" a Martes y Sábado, se registra en segundos y 
   });
   expect(newSession.status).toBe('completed');
   expect(newSession.entries['antebrazo-en-barra'].sets).toEqual([
-    { status: 'done', weight: 0, reps: 30 },
-    { status: 'done', weight: 0, reps: 30 },
-    { status: 'done', weight: 0, reps: 30 }
+    { status: 'done', weight: 0, reps: 30, rpe: null },
+    { status: 'done', weight: 0, reps: 30, rpe: null },
+    { status: 'done', weight: 0, reps: 30, rpe: null }
   ]);
 
   // Y también se ve en el historial de la app.

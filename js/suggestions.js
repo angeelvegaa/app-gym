@@ -21,6 +21,29 @@ function maxRepsAtMaxWeight(entry, weight) {
   return Math.max(...atWeight.map(s => s.reps || 0));
 }
 
+// RPE representativo de una sesión de un ejercicio: promedio del RPE de las
+// series completadas (cada serie guarda el suyo). Se promedia en vez de
+// coger la última o la máxima porque una sola serie rara (fallo puntual,
+// distracción) no debe bastar para bloquear una subida de peso o disparar
+// un aviso de retroceso — y el promedio sigue reflejando bien un ejercicio
+// que fue a más o a menos según avanzaban las series.
+// Sesiones de antes de este cambio no tienen RPE por serie: se usa su RPE
+// único de entonces (`entry.rpe`) como respaldo.
+export function effectiveRpe(entry) {
+  const doneRpes = (entry.sets || [])
+    .filter(s => s.status === 'done' && s.rpe != null)
+    .map(s => s.rpe);
+  if (doneRpes.length) return doneRpes.reduce((a, b) => a + b, 0) / doneRpes.length;
+  return entry.rpe ?? null;
+}
+
+// "7" para un promedio exacto, "7.3" si no lo es.
+export function formatRpe(value) {
+  if (value == null) return null;
+  const rounded = Math.round(value * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
 function confidenceFor(n) {
   if (n >= 5) return 'alta';
   if (n >= 3) return 'media';
@@ -77,11 +100,12 @@ export function getSuggestions(history, exercise, phase, targetRpe) {
   // Regla 1: subir peso.
   const last2 = recent.slice(-2);
   const rule1Ok = last2.length === 2 && last2.every(e => {
-    if (!allSetsDone(e) || e.rpe == null) return false;
+    const rpe = effectiveRpe(e);
+    if (!allSetsDone(e) || rpe == null) return false;
     const w = maxWeightInSession(e);
     const maxReps = maxRepsAtMaxWeight(e, w);
     const rpeLimit = rules.rule1MaxRpeSlack === 0 ? targetRpe : targetRpe - 1;
-    return maxReps >= exercise.repMax && e.rpe <= rpeLimit;
+    return maxReps >= exercise.repMax && rpe <= rpeLimit;
   });
   if (rule1Ok) {
     const currentWeight = maxWeightInSession(last2[last2.length - 1]) || 0;
@@ -129,11 +153,13 @@ export function getSuggestions(history, exercise, phase, targetRpe) {
 
   // Regla 3: retroceso.
   if (last2.length === 2) {
-    const rule3 = last2.every(e => e.rpe != null && e.rpe >= targetRpe + 1 && (() => {
+    const rule3 = last2.every(e => {
+      const rpe = effectiveRpe(e);
+      if (rpe == null || rpe < targetRpe + 1) return false;
       const w = maxWeightInSession(e);
       const maxReps = maxRepsAtMaxWeight(e, w);
       return maxReps < exercise.repMin;
-    })());
+    });
     if (rule3) {
       const text = phase === 'definicion'
         ? `RPE alta y reps bajas en ${exercise.name}. Normal en definición: ajusta expectativas o baja un 5-10%.`
@@ -155,7 +181,10 @@ export function getSuggestions(history, exercise, phase, targetRpe) {
 
   // Regla 5: RPE objetivo bajo (solo si no saltó ya la regla 1).
   if (!rule1Ok) {
-    const belowTarget = recent.every(e => e.rpe != null && e.rpe <= targetRpe - 1 && allSetsDone(e));
+    const belowTarget = recent.every(e => {
+      const rpe = effectiveRpe(e);
+      return rpe != null && rpe <= targetRpe - 1 && allSetsDone(e);
+    });
     if (belowTarget && recent.length >= 2 && (phase === 'volumen' || phase === 'definicion')) {
       suggestions.push({
         id: 'rpe-low',

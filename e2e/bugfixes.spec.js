@@ -114,6 +114,6 @@ for (const browserName of ['chromium', 'webkit']) {
       const raw = JSON.parse(localStorage.getItem('gym.sessions'));
       return raw.sessions['2026-01-05_day1'].entries[Object.keys(raw.sessions['2026-01-05_day1'].entries)[0]].sets[0];
     });
-    expect(saved).toEqual({ status: 'done', weight: 62.5, reps: 8 });
+    expect(saved).toEqual({ status: 'done', weight: 62.5, reps: 8, rpe: null });
   });
 }

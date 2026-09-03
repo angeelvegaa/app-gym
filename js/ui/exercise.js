@@ -1,7 +1,7 @@
 import { el, clear } from './components.js';
 import * as state from '../state.js';
 import { getExerciseHistory } from '../state.js';
-import { getSuggestions } from '../suggestions.js';
+import { getSuggestions, effectiveRpe, formatRpe } from '../suggestions.js';
 import { getTargetRpe } from '../schedule.js';
 
 // Incluye ejercicios de cualquier rutina guardada en este dispositivo, para
@@ -84,7 +84,7 @@ function buildRangeSelector(current, onChange) {
 
 function buildChart(history, exercise) {
   const points = history
-    .map(h => ({ date: h.date, value: primaryMetric(h, exercise), weekInBlock: h.weekInBlock, block: h.block, rpe: h.rpe }))
+    .map(h => ({ date: h.date, value: primaryMetric(h, exercise), weekInBlock: h.weekInBlock, block: h.block, rpe: effectiveRpe(h) }))
     .filter(p => p.value != null);
   if (points.length < 2) return null;
 
@@ -145,7 +145,7 @@ function buildChart(history, exercise) {
     svg.appendChild(circle);
 
     const title = document.createElementNS(svgNS, 'title');
-    title.textContent = `${c.date}: ${c.value}${metricUnit(exercise)} · B${c.block} S${c.weekInBlock}${c.rpe != null ? ` · RPE ${c.rpe}` : ''}${c.weekInBlock === 4 ? ' · deload' : ''}`;
+    title.textContent = `${c.date}: ${c.value}${metricUnit(exercise)} · B${c.block} S${c.weekInBlock}${c.rpe != null ? ` · RPE ${formatRpe(c.rpe)}` : ''}${c.weekInBlock === 4 ? ' · deload' : ''}`;
     circle.appendChild(title);
   });
 
@@ -225,7 +225,8 @@ export function renderExerciseDetail(root, exerciseId, navigate) {
     el('h4', { text: 'Sesiones' }),
     el('ul', { class: 'detail-set-list' }, history.slice().reverse().map(h => {
       const v = primaryMetric(h, exercise);
-      return el('li', { text: `${h.date} · S${h.weekInBlock} · ${v != null ? v + metricUnit(exercise) : '—'}${h.rpe != null ? ` · RPE ${h.rpe}` : ''}` });
+      const rpe = effectiveRpe(h);
+      return el('li', { text: `${h.date} · S${h.weekInBlock} · ${v != null ? v + metricUnit(exercise) : '—'}${rpe != null ? ` · RPE ${formatRpe(rpe)}` : ''}` });
     }))
   ]));
 }

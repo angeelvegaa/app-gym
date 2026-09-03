@@ -1,6 +1,7 @@
 import { el, clear, toast } from './components.js';
 import * as state from '../state.js';
 import { monthKeyOf, monthLabel, weekKeyOf } from '../schedule.js';
+import { effectiveRpe, formatRpe } from '../suggestions.js';
 
 const { getDayById } = state;
 
@@ -223,6 +224,7 @@ export function renderSessionDetail(root, sessionId, navigate) {
     const exercise = findExercise(day, exId);
     const label = exercise ? exercise.name : exId;
     if (entry.sets) {
+      const avgRpe = effectiveRpe(entry);
       root.appendChild(el('div', { class: 'card' }, [
         el('h4', { text: label }),
         el('ul', { class: 'detail-set-list' }, entry.sets.map((s, i) => el('li', {
@@ -230,7 +232,8 @@ export function renderSessionDetail(root, sessionId, navigate) {
             ? `Serie ${i + 1}: ${formatSetDone(s, exercise)}`
             : s.status === 'skipped' ? `Serie ${i + 1}: saltada` : `Serie ${i + 1}: sin hacer`
         }))),
-        entry.rpe != null ? el('p', { class: 'muted', text: `RPE ${entry.rpe}` }) : null
+        avgRpe != null ? el('p', { class: 'muted', text: `RPE medio: ${formatRpe(avgRpe)}` }) : null,
+        entry.note ? el('p', { class: 'muted exercise-note-detail', text: `Nota: ${entry.note}` }) : null
       ]));
     } else {
       root.appendChild(el('div', { class: 'card' }, [
@@ -243,9 +246,10 @@ export function renderSessionDetail(root, sessionId, navigate) {
 }
 
 function formatSetDone(s, exercise) {
+  const rpeTxt = s.rpe != null ? ` · RPE ${s.rpe}` : '';
   // De peso corporal: sin "— ×", solo las repeticiones.
-  if (exercise && exercise.bodyweight) return `${s.reps ?? '—'} reps`;
-  return `${s.weight ?? '—'} × ${s.reps ?? '—'}`;
+  if (exercise && exercise.bodyweight) return `${s.reps ?? '—'} reps${rpeTxt}`;
+  return `${s.weight ?? '—'} × ${s.reps ?? '—'}${rpeTxt}`;
 }
 
 function findExercise(day, exId) {
