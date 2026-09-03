@@ -41,6 +41,17 @@ function toDraft(plan) {
   };
 }
 
+// Reordena un elemento (por _key) dentro de una lista, moviéndolo una
+// posición en la dirección dada (-1 arriba, +1 abajo). No hace nada si ya
+// está en el extremo.
+function moveItem(list, key, direction) {
+  const idx = list.findIndex(item => item._key === key);
+  const newIdx = idx + direction;
+  if (idx === -1 || newIdx < 0 || newIdx >= list.length) return;
+  const [item] = list.splice(idx, 1);
+  list.splice(newIdx, 0, item);
+}
+
 function field(labelText, inputEl) {
   return el('div', { class: 'editor-field' }, [
     el('label', { class: 'editor-field-label', text: labelText }),
@@ -271,6 +282,21 @@ function renderExerciseCard(day, ex, rerender) {
     perSideWrap.appendChild(document.createTextNode(' Es "por lado" (zancadas, step-up...)'));
     body.appendChild(perSideWrap);
   }
+
+  body.appendChild(el('div', { class: 'plan-row-actions' }, [
+    el('button', {
+      class: 'btn btn--ghost btn--small',
+      type: 'button',
+      text: '▲ Subir',
+      onClick: () => { moveItem(day.exercises, ex._key, -1); rerender(); }
+    }),
+    el('button', {
+      class: 'btn btn--ghost btn--small',
+      type: 'button',
+      text: '▼ Bajar',
+      onClick: () => { moveItem(day.exercises, ex._key, 1); rerender(); }
+    })
+  ]));
 
   body.appendChild(el('button', {
     class: 'btn btn--danger btn--small',
