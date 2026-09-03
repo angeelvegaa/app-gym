@@ -220,13 +220,14 @@ export function renderSessionDetail(root, sessionId, navigate) {
   }
 
   Object.entries(session.entries).forEach(([exId, entry]) => {
-    const label = findExerciseName(day, exId);
+    const exercise = findExercise(day, exId);
+    const label = exercise ? exercise.name : exId;
     if (entry.sets) {
       root.appendChild(el('div', { class: 'card' }, [
         el('h4', { text: label }),
         el('ul', { class: 'detail-set-list' }, entry.sets.map((s, i) => el('li', {
           text: s.status === 'done'
-            ? `Serie ${i + 1}: ${s.weight ?? '—'} × ${s.reps ?? '—'}`
+            ? `Serie ${i + 1}: ${formatSetDone(s, exercise)}`
             : s.status === 'skipped' ? `Serie ${i + 1}: saltada` : `Serie ${i + 1}: sin hacer`
         }))),
         entry.rpe != null ? el('p', { class: 'muted', text: `RPE ${entry.rpe}` }) : null
@@ -241,9 +242,14 @@ export function renderSessionDetail(root, sessionId, navigate) {
   root.appendChild(deleteButton(`¿Eliminar el entreno de ${day ? day.name : session.dayId} del ${session.date}? No afecta al resto del histórico.`));
 }
 
-function findExerciseName(day, exId) {
-  if (!day) return exId;
+function formatSetDone(s, exercise) {
+  // De peso corporal: sin "— ×", solo las repeticiones.
+  if (exercise && exercise.bodyweight) return `${s.reps ?? '—'} reps`;
+  return `${s.weight ?? '—'} × ${s.reps ?? '—'}`;
+}
+
+function findExercise(day, exId) {
+  if (!day) return null;
   const all = [...day.warmup, ...day.exercises];
-  const found = all.find(e => e.id === exId);
-  return found ? found.name : exId;
+  return all.find(e => e.id === exId) || null;
 }

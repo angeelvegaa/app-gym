@@ -245,8 +245,22 @@ function renderExerciseCard(day, ex, rerender) {
     body.appendChild(numberField('Reps mínimas', ex.repMin, (v) => { ex.repMin = v; }));
     body.appendChild(numberField('Reps máximas', ex.repMax, (v) => { ex.repMax = v; }));
     body.appendChild(numberField('RPE objetivo (vacío = sin RPE fijo todavía)', ex.rpe, (v) => { ex.rpe = v; }, 0.5));
-    body.appendChild(textField('Unidad de peso (kg, m...)', ex.unit ?? 'kg', (v) => { ex.unit = v || 'kg'; }));
-    body.appendChild(numberField('Incremento sugerido', ex.increment, (v) => { ex.increment = v; }, 0.5));
+
+    const bodyweightWrap = el('label', { class: 'editor-checkbox-row' });
+    const bodyweightCheckbox = el('input', { type: 'checkbox' });
+    bodyweightCheckbox.checked = !!ex.bodyweight;
+    bodyweightCheckbox.addEventListener('change', () => {
+      ex.bodyweight = bodyweightCheckbox.checked || undefined;
+      setTimeout(rerender, 0);
+    });
+    bodyweightWrap.appendChild(bodyweightCheckbox);
+    bodyweightWrap.appendChild(document.createTextNode(' Peso corporal (sin campo de peso al registrar)'));
+    body.appendChild(bodyweightWrap);
+
+    if (!ex.bodyweight) {
+      body.appendChild(textField('Unidad de peso (kg, m...)', ex.unit ?? 'kg', (v) => { ex.unit = v || 'kg'; }));
+      body.appendChild(numberField('Incremento sugerido', ex.increment, (v) => { ex.increment = v; }, 0.5));
+    }
     body.appendChild(textField('Unidad de la repetición (vacío = "reps"; o "s", "m"...)', ex.repUnit ?? '', (v) => { ex.repUnit = v || undefined; }));
 
     const perSideWrap = el('label', { class: 'editor-checkbox-row' });

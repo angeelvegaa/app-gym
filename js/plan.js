@@ -370,6 +370,27 @@ const SEED_PPL_DAYS = JSON.parse(JSON.stringify(PLAN_PPL_DAYS));
 SEED_PPL_DAYS.find(d => d.id === 'legs').exercises.find(e => e.id === 'extension-cuadriceps-lig-legs').id = 'extension-cuadriceps-lig';
 SEED_PPL_DAYS.find(d => d.id === 'legs').exercises.find(e => e.id === 'abs-legs').id = 'abs-lower';
 
+// "Six Way de hombro" y "Fondos en paralelas ligeros" pasan de calentamiento
+// (hecho/no hecho) a ejercicios de peso corporal con series y reps, para
+// que su progreso se pueda seguir en Progreso — igual que arriba, mismo id
+// compartido entre Push y Upper (mismo ejercicio, no dos).
+function moveToBodyweightExercise(day, warmupId, newId, fields) {
+  const idx = day.warmup.findIndex(w => w.id === warmupId);
+  const [old] = day.warmup.splice(idx, 1);
+  day.exercises.unshift({ id: newId, name: old.name, type: 'strength', bodyweight: true, ...fields });
+}
+{
+  const pushDay = SEED_PPL_DAYS.find(d => d.id === 'push');
+  const upperDay = SEED_PPL_DAYS.find(d => d.id === 'upper');
+  // "1 rep" = una vuelta completa a los 6 movimientos (no un ejercicio por
+  // movimiento); por defecto 1 serie x 1 vuelta, pero se puede registrar
+  // más si se hace más de una vuelta ese día.
+  moveToBodyweightExercise(pushDay, 'fondos-ligeros-push', 'fondos-ligeros', { sets: 2, repMin: 8, repMax: 10, rpe: null });
+  moveToBodyweightExercise(pushDay, 'six-way', 'six-way', { sets: 1, repMin: 1, repMax: 1, rpe: null });
+  moveToBodyweightExercise(upperDay, 'fondos-ligeros-upper', 'fondos-ligeros', { sets: 2, repMin: 8, repMax: 10, rpe: null });
+  moveToBodyweightExercise(upperDay, 'six-way-upper', 'six-way', { sets: 1, repMin: 1, repMax: 1, rpe: null });
+}
+
 // Rutinas de ejemplo que se ofrecen al configurar la app por primera vez en
 // un dispositivo nuevo, o para crear una rutina copiando una de estas como
 // punto de partida. Sin version: se asigna al copiarla a un dispositivo.

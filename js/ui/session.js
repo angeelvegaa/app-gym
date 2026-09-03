@@ -214,11 +214,12 @@ function renderSetRow(session, ex, entry, idx, last, onChange) {
   const lastSet = last && last.sets && last.sets[idx];
   const repLabel = ex.repUnit || 'reps';
 
-  const weightDefault = set.weight != null ? set.weight : (lastSet ? lastSet.weight : null);
   const repsDefault = set.reps != null ? set.reps : (lastSet ? lastSet.reps : null);
 
-  const weightStepper = numberStepper({
-    value: weightDefault,
+  // Peso corporal (p. ej. "Fondos en paralelas", "Six Way de hombro"): sin
+  // campo de peso, solo series y repeticiones.
+  const weightStepper = ex.bodyweight ? null : numberStepper({
+    value: set.weight != null ? set.weight : (lastSet ? lastSet.weight : null),
     step: ex.increment,
     unit: ex.unit,
     onChange: (v) => {
@@ -234,9 +235,10 @@ function renderSetRow(session, ex, entry, idx, last, onChange) {
     }
   });
 
-  const isReference = set.weight == null && lastSet;
+  const referenceField = ex.bodyweight ? set.reps : set.weight;
+  const isReference = referenceField == null && lastSet;
   if (isReference) {
-    weightStepper.classList.add('stepper--reference');
+    if (weightStepper) weightStepper.classList.add('stepper--reference');
     repsStepper.classList.add('stepper--reference');
   }
 
@@ -251,7 +253,7 @@ function renderSetRow(session, ex, entry, idx, last, onChange) {
       // móvil, tocar este botón directamente sin cerrar antes el teclado
       // puede llegar antes que el blur/change del campo — sobre todo en
       // WebKit — y perder lo escrito si dependemos de ese evento).
-      const liveWeight = readStepperValue(weightStepper);
+      const liveWeight = weightStepper ? readStepperValue(weightStepper) : null;
       const liveReps = readStepperValue(repsStepper);
       state.updateEntry(session.id, ex.id, e => {
         const s = e.sets[idx];

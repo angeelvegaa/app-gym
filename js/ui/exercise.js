@@ -36,6 +36,22 @@ function maxWeight(entry) {
   return Math.max(...done.map(s => s.weight));
 }
 
+function maxReps(entry) {
+  const done = entry.sets.filter(s => s.status === 'done' && s.reps != null);
+  if (!done.length) return null;
+  return Math.max(...done.map(s => s.reps));
+}
+
+// De peso corporal (p. ej. "Fondos en paralelas", "Six Way de hombro"): se
+// sigue el progreso por repeticiones, no hay peso que progresar.
+function primaryMetric(entry, exercise) {
+  return exercise.bodyweight ? maxReps(entry) : maxWeight(entry);
+}
+
+function metricUnit(exercise) {
+  return exercise.bodyweight ? ' reps' : exercise.unit;
+}
+
 // Rango a mostrar: ver todos los bloques presentes en el historial de este
 // ejercicio, el más reciente, o los últimos 3.
 const CHART_RANGES = [
@@ -68,20 +84,20 @@ function buildRangeSelector(current, onChange) {
 
 function buildChart(history, exercise) {
   const points = history
-    .map(h => ({ date: h.date, weight: maxWeight(h), weekInBlock: h.weekInBlock, block: h.block, rpe: h.rpe }))
-    .filter(p => p.weight != null);
+    .map(h => ({ date: h.date, value: primaryMetric(h, exercise), weekInBlock: h.weekInBlock, block: h.block, rpe: h.rpe }))
+    .filter(p => p.value != null);
   if (points.length < 2) return null;
 
   const height = 140, padX = 30, padY = 20;
   const width = Math.max(320, points.length * 22);
-  const weights = points.map(p => p.weight);
-  const minW = Math.min(...weights), maxW = Math.max(...weights);
+  const values = points.map(p => p.value);
+  const minW = Math.min(...values), maxW = Math.max(...values);
   const range = maxW - minW || 1;
 
   const xStep = (width - padX * 2) / (points.length - 1);
   const coords = points.map((p, i) => ({
     x: padX + i * xStep,
-    y: height - padY - ((p.weight - minW) / range) * (height - padY * 2),
+    y: height - padY - ((p.value - minW) / range) * (height - padY * 2),
     ...p
   }));
 
@@ -129,7 +145,7 @@ function buildChart(history, exercise) {
     svg.appendChild(circle);
 
     const title = document.createElementNS(svgNS, 'title');
-    title.textContent = `${c.date}: ${c.weight}${exercise.unit} · B${c.block} S${c.weekInBlock}${c.rpe != null ? ` · RPE ${c.rpe}` : ''}${c.weekInBlock === 4 ? ' · deload' : ''}`;
+    title.textContent = `${c.date}: ${c.value}${metricUnit(exercise)} · B${c.block} S${c.weekInBlock}${c.rpe != null ? ` · RPE ${c.rpe}` : ''}${c.weekInBlock === 4 ? ' · deload' : ''}`;
     circle.appendChild(title);
   });
 
@@ -181,15 +197,19 @@ export function renderExerciseDetail(root, exerciseId, navigate) {
 
   root.appendChild(renderChartCard(history, exercise));
 
-  const weights = history.map(maxWeight).filter(w => w != null);
-  const best = weights.length ? Math.max(...weights) : null;
+  const values = history.map(h => primaryMetric(h, exercise)).filter(v => v != null);
+  const best = values.length ? Math.max(...values) : null;
   const last4 = history.slice(-4);
-  const volumes = last4.map(h => h.sets.reduce((sum, s) => s.status === 'done' && s.weight != null && s.reps != null ? sum + s.weight * s.reps : sum, 0));
+  const volumes = last4.map(h => h.sets.reduce((sum, s) => {
+    if (s.status !== 'done') return sum;
+    if (exercise.bodyweight) return s.reps != null ? sum + s.reps : sum;
+    return s.weight != null && s.reps != null ? sum + s.weight * s.reps : sum;
+  }, 0));
 
   root.appendChild(el('div', { class: 'card' }, [
     el('h4', { text: 'Métricas' }),
-    el('p', { text: `Mejor serie histórica: ${best != null ? best + exercise.unit : '—'}` }),
-    el('p', { text: `Volumen últimas ${last4.length} sesiones: ${volumes.map(v => Math.round(v)).join(' → ')}` })
+    el('p', { text: `Mejor serie histórica: ${best != null ? best + metricUnit(exercise) : '—'}` }),
+    el('p', { text: `${exercise.bodyweight ? 'Total reps' : 'Volumen'} últimas ${last4.length} sesiones: ${volumes.map(v => Math.round(v)).join(' → ')}` })
   ]));
 
   const targetRpe = getTargetRpe(exercise.rpe, history[history.length - 1].weekInBlock);
@@ -204,8 +224,8 @@ export function renderExerciseDetail(root, exerciseId, navigate) {
   root.appendChild(el('div', { class: 'card' }, [
     el('h4', { text: 'Sesiones' }),
     el('ul', { class: 'detail-set-list' }, history.slice().reverse().map(h => {
-      const w = maxWeight(h);
-      return el('li', { text: `${h.date} · S${h.weekInBlock} · ${w != null ? w + exercise.unit : '—'}${h.rpe != null ? ` · RPE ${h.rpe}` : ''}` });
+      const v = primaryMetric(h, exercise);
+      return el('li', { text: `${h.date} · S${h.weekInBlock} · ${v != null ? v + metricUnit(exercise) : '—'}${h.rpe != null ? ` · RPE ${h.rpe}` : ''}` });
     }))
   ]));
 }

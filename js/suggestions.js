@@ -45,6 +45,9 @@ export function getSuggestions(history, exercise, phase, targetRpe) {
   // Sin RPE objetivo todavía (ejercicio recién añadido, sin sesiones de
   // referencia) ninguna de las reglas de abajo tiene con qué comparar.
   if (targetRpe == null) return [];
+  // De peso corporal: todas las reglas de abajo razonan sobre progresión de
+  // peso (subir Nkg, bajar un 5-10%...), que no tiene sentido aquí.
+  if (exercise.bodyweight) return [];
 
   // Un bloque saltado (viaje, lesión...) o un día no seguido al 100% corta
   // cualquier racha: las reglas de estancamiento/progreso solo miran
