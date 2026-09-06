@@ -2,6 +2,7 @@ import { el, clear, toast, seedPlanCard } from './components.js';
 import { PHASES, PHASE_LABELS, SEED_PLANS } from '../plan.js';
 import * as state from '../state.js';
 import * as storage from '../storage.js';
+import { renderCloudSyncCard } from './cloud-sync.js';
 
 const WEEKDAY_NAMES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -232,6 +233,9 @@ export function renderSettings(root, navigate) {
     ])
   ]);
   root.appendChild(backupWrap);
+
+  // Copia en la nube (opcional, apagada por defecto)
+  root.appendChild(renderCloudSyncCard(root, renderSettings, navigate));
 
   // Borrado total
   const dangerWrap = el('div', { class: 'card card--danger' }, [

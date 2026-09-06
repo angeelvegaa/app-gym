@@ -1,6 +1,7 @@
 import { el, clear, toast, seedPlanCard } from './components.js';
 import { SEED_PLANS } from '../plan.js';
 import * as state from '../state.js';
+import { mountCloudSyncWizard } from './cloud-sync.js';
 
 // Se muestra solo en un dispositivo genuinamente nuevo (sin rutinas
 // guardadas y sin historial previo). Elegir una rutina de ejemplo la copia
@@ -32,4 +33,32 @@ export function renderOnboarding(root, navigate) {
       onClick: () => navigate('#/plan-editor/new')
     })
   ]));
+
+  root.appendChild(renderRecoverCard(root, navigate));
+}
+
+// Para quien ya activó la copia en la nube en otro dispositivo: inicia
+// sesión y recupera su rutina e historial en vez de crear uno nuevo.
+function renderRecoverCard(root, navigate) {
+  const card = el('div', { class: 'card' }, [
+    el('h3', { text: '¿Ya tienes datos en la nube?' }),
+    el('p', { class: 'muted', text: 'Si activaste la copia en la nube en otro dispositivo, inicia sesión aquí para recuperar tu rutina e historial en vez de crear uno nuevo.' })
+  ]);
+  const start = () => {
+    const wizardContainer = el('div', {});
+    clear(card);
+    card.appendChild(el('h3', { text: '¿Ya tienes datos en la nube?' }));
+    card.appendChild(wizardContainer);
+    mountCloudSyncWizard(wizardContainer, {
+      initialEmail: '',
+      onCancel: () => renderOnboarding(root, navigate),
+      onDone: () => navigate('#/today')
+    });
+  };
+  card.appendChild(el('button', {
+    class: 'btn btn--secondary',
+    text: 'Recuperar mis datos de la nube',
+    onClick: start
+  }));
+  return card;
 }

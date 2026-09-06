@@ -1,7 +1,7 @@
 // Service worker: cache-first sobre el shell de la app, versionado.
 // Sube CACHE_VERSION en cada despliegue para que el móvil recoja los cambios.
 
-const CACHE_VERSION = 'gym-v20';
+const CACHE_VERSION = 'gym-v21';
 
 const SHELL_FILES = [
   './',
@@ -14,12 +14,14 @@ const SHELL_FILES = [
   './js/state.js',
   './js/schedule.js',
   './js/suggestions.js',
+  './js/sync.js',
   './js/ui/components.js',
   './js/ui/today.js',
   './js/ui/session.js',
   './js/ui/history.js',
   './js/ui/exercise.js',
   './js/ui/settings.js',
+  './js/ui/cloud-sync.js',
   './js/ui/routine.js',
   './js/ui/onboarding.js',
   './js/ui/plan-editor.js',

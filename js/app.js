@@ -8,6 +8,7 @@ import { renderOnboarding } from './ui/onboarding.js';
 import { renderPlanEditor } from './ui/plan-editor.js';
 import * as state from './state.js';
 import * as storage from './storage.js';
+import * as sync from './sync.js';
 import { todayStr, isWeekChangeDay, getBlockPosition, getWeekBannerMessage } from './schedule.js';
 
 const root = document.getElementById('view');
@@ -102,6 +103,11 @@ navButtons.forEach(btn => {
 window.addEventListener('hashchange', route);
 route();
 maybeShowWeekChangeBanner();
+
+// No-op si la copia en la nube está apagada (caso por defecto): ninguna
+// llamada de red. Si está encendida, fusiona en segundo plano y solo
+// vuelve a pintar la pantalla actual si trajo algo nuevo de la nube.
+sync.init(() => route());
 
 // Aviso de que hoy arranca una semana nueva del bloque, solo el día exacto
 // en que cambia y solo la primera vez que se abre la app ese día (se

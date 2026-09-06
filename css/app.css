@@ -494,6 +494,19 @@ h4 { font-size: 15px; margin: 0 0 8px; }
 .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .settings-row .settings-select { width: auto; flex: 1; }
 
+textarea.settings-date { resize: vertical; font-family: inherit; }
+.recovery-code {
+  font-family: monospace;
+  font-size: 13px;
+  word-break: break-all;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  margin: 8px 0;
+  user-select: all;
+}
+
 .plan-row {
   display: flex;
   align-items: center;

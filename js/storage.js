@@ -8,7 +8,32 @@ const KEYS = {
   weekBannerShown: 'gym.weekBannerShown'
 };
 
+// Claves que la copia en la nube (sync.js) puede sincronizar. Vive aquí, no
+// en sync.js, para que no haya dos sitios con la lista de nombres de clave.
+export const SYNCED_KEYS = [KEYS.sessions, KEYS.settings, KEYS.plans];
+
 const SCHEMA_VERSION = 1;
+
+// Sin sync.js activo estas listas están vacías y no cuesta nada: solo se
+// suscribe alguien cuando la persona activa la copia en la nube.
+const writeListeners = [];
+const wipeListeners = [];
+
+export function onWrite(fn) {
+  writeListeners.push(fn);
+  return () => {
+    const i = writeListeners.indexOf(fn);
+    if (i >= 0) writeListeners.splice(i, 1);
+  };
+}
+
+export function onWipe(fn) {
+  wipeListeners.push(fn);
+  return () => {
+    const i = wipeListeners.indexOf(fn);
+    if (i >= 0) wipeListeners.splice(i, 1);
+  };
+}
 
 function readRaw(key) {
   try {
@@ -23,6 +48,7 @@ function readRaw(key) {
 function writeRaw(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
+    writeListeners.forEach(fn => fn(key));
     return true;
   } catch (err) {
     console.error(`storage: fallo al guardar ${key}`, err);
@@ -96,4 +122,5 @@ export function wipeAll() {
   localStorage.removeItem(KEYS.settings);
   localStorage.removeItem(KEYS.plans);
   localStorage.removeItem(KEYS.weekBannerShown);
+  wipeListeners.forEach(fn => fn());
 }
