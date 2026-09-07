@@ -5,13 +5,15 @@ const BLOCK_START = '2026-01-05';
 
 // Con el interruptor apagado (caso por defecto) la app no debe hacer NINGUNA
 // llamada de red relacionada con la copia en la nube: ni al SDK de Supabase
-// (esm.sh) ni al propio proyecto (*.supabase.co). Corre siempre, en los dos
-// proyectos (chromium-portrait, webkit-portrait), sin depender de credenciales.
+// (esm.sh), ni al propio proyecto (*.supabase.co), ni al widget anti-bot
+// (challenges.cloudflare.com, solo se carga al abrir el asistente de
+// activación). Corre siempre, en los dos proyectos (chromium-portrait,
+// webkit-portrait), sin depender de credenciales.
 test('con la copia en la nube apagada no se hace ninguna llamada de red nueva', async ({ page }) => {
   const externalRequests = [];
   page.on('request', (req) => {
     const url = req.url();
-    if (/esm\.sh|supabase\.co/.test(url)) externalRequests.push(url);
+    if (/esm\.sh|supabase\.co|cloudflare\.com/.test(url)) externalRequests.push(url);
   });
 
   await seedApp(page, { blockStart: BLOCK_START });
@@ -27,6 +29,81 @@ test('con la copia en la nube apagada no se hace ninguna llamada de red nueva', 
   await page.click('[data-section="settings"]');
 
   expect(externalRequests).toEqual([]);
+});
+
+// resolveTurnstileSiteKey decide, por hostname EXACTO, si se usa la site
+// key de producción o la de test de Cloudflare (siempre pasa, pensada para
+// automatización). Prueba activa contra hostnames adversarios, no solo
+// contra los dos casos "buenos": nada que no sea 'localhost'/'127.0.0.1'
+// exactos debe devolver nunca la clave de test, ni con mayúsculas, ni con
+// el puerto pegado, ni con dominios que solo contienen esas palabras.
+test('resolveTurnstileSiteKey solo usa la clave de test para localhost/127.0.0.1 exactos', async ({ page }) => {
+  await page.goto('/');
+  const TEST_KEY = '1x00000000000000000000AA';
+
+  const results = await page.evaluate(async () => {
+    const mod = await import('/js/ui/cloud-sync.js');
+    const hostnames = [
+      'localhost', '127.0.0.1',
+      'angeelvegaa.github.io',
+      'localhost.evil.com', 'evil-localhost.com', 'notlocalhost',
+      '127.0.0.1.evil.com', '0.0.0.0', '', 'LOCALHOST', 'Localhost',
+      '127.0.0.2', 'localhost:8080', 'sub.localhost'
+    ];
+    return hostnames.map(hostname => ({
+      hostname,
+      key: mod.resolveTurnstileSiteKey(hostname),
+      real: mod.TURNSTILE_SITE_KEY_REAL
+    }));
+  });
+
+  const LOCAL = new Set(['localhost', '127.0.0.1']);
+  for (const { hostname, key, real } of results) {
+    if (LOCAL.has(hostname)) {
+      expect(key, `hostname "${hostname}" (caso de test)`).toBe(TEST_KEY);
+    } else {
+      expect(key, `hostname "${hostname}" (debe ser SIEMPRE la clave real)`).toBe(real);
+      expect(key, `hostname "${hostname}"`).not.toBe(TEST_KEY);
+    }
+  }
+});
+
+// El propio Playwright sirve la app en localhost, así que aquí SIEMPRE se
+// usa la site key de test de Cloudflare (comprobado arriba) — su widget
+// resuelve solo, sin intervención humana, a diferencia de la clave real
+// (ver commit: la real detecta el navegador automatizado y nunca completa
+// el reto). Prueba lo que SÍ es automatizable sin tocar Supabase: el
+// widget resuelve y el código manda ese captchaToken con la forma exacta
+// que espera GoTrue (gotrue_meta_security.captcha_token). No prueba que
+// Supabase acepte el signUp de verdad: con la secret key REAL configurada
+// en el proyecto, un token dummy de la clave de test siempre se rechaza
+// server-side (así lo documenta Cloudflare) — probar eso exigiría cambiar
+// la secret key de Supabase, y se decidió no tocarla ni para tests. Ver
+// README > Copia en la nube > Verificación manual para esa parte.
+test('el widget de Turnstile resuelve solo y el captchaToken llega a signUp con la forma correcta', async ({ page }) => {
+  let signupRequest = null;
+  page.on('request', (req) => {
+    if (/\/auth\/v1\/signup/.test(req.url())) signupRequest = req;
+  });
+
+  await seedApp(page, { blockStart: BLOCK_START });
+  await page.goto('/');
+  await page.click('[data-section="settings"]');
+  await page.getByRole('button', { name: 'Activar copia en la nube' }).click();
+
+  const tokenInput = page.locator('input[name="cf-turnstile-response"]');
+  await expect(tokenInput).not.toHaveValue('', { timeout: 15000 });
+
+  await page.locator('input[type="email"]').fill(`turnstile-check-${Date.now()}@mailinator.com`);
+  await page.locator('input[type="password"]').fill('Test-Password-123!');
+  await page.getByRole('button', { name: 'Crear cuenta' }).click();
+  await page.waitForTimeout(3000);
+
+  expect(signupRequest).not.toBeNull();
+  const body = signupRequest.postDataJSON();
+  const captchaToken = body?.gotrue_meta_security?.captcha_token;
+  expect(captchaToken).toBeTruthy();
+  expect(typeof captchaToken).toBe('string');
 });
 
 // Test contra el proyecto real de Supabase: requiere una cuenta YA
@@ -53,6 +130,18 @@ test.describe('sincronización real entre dos dispositivos', () => {
     // cuenta y provoca carreras (no es un fallo de la app: el motor de
     // navegador no cambia nada del lado de Supabase). Con uno basta.
     test.skip(testInfo.project.name !== 'chromium-portrait', 'Test de red real: se ejecuta solo en un proyecto para no correr contra la misma cuenta de Supabase en paralelo.');
+
+    // Bloqueado por diseño desde que Turnstile protege signUp/signIn: en
+    // localhost siempre se usa la site key de TEST de Cloudflare
+    // (resolveTurnstileSiteKey), cuyo token es un dummy que la secret key
+    // REAL configurada en Supabase rechaza siempre (documentado por
+    // Cloudflare). No hay forma de evitarlo sin cambiar temporalmente esa
+    // secret key en Supabase, y se decidió no tocarla ni para tests. El
+    // código se deja tal cual (documenta el flujo, reutilizable si algún
+    // día se prueba a mano con la secret key de test) — la verificación
+    // real de este flujo es manual, ver README > Copia en la nube >
+    // Verificación manual.
+    test.skip(true, 'Bloqueado por Turnstile: la secret key real de Supabase rechaza el token dummy de la clave de test que se usa en localhost. Verificar a mano (ver README).');
 
     // --- "Dispositivo A": ya tiene una rutina y un entreno registrados
     // localmente (como cualquier uso real previo a activar la sync). ---

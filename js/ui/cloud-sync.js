@@ -5,6 +5,51 @@
 import { el, clear, toast } from './components.js';
 import * as sync from '../sync.js';
 
+// Ambas son públicas (site keys, no secretas — seguro exponerlas en el
+// código): la real, y la de test oficial de Cloudflare ("visible widget,
+// siempre pasa", ver developers.cloudflare.com/turnstile/troubleshooting/testing/).
+// Las site keys de producción de Turnstile rechazan resolver el reto desde
+// un navegador controlado por Playwright (detección de bot integrada en el
+// propio widget) — no hay forma de probar el flujo end-to-end en CI/local
+// contra la clave real, así que ahí se usa la de test.
+export const TURNSTILE_SITE_KEY_REAL = '0x4AAAAAAEroqMIQUWfcnssE';
+const TURNSTILE_SITE_KEY_TEST = '1x00000000000000000000AA';
+const TURNSTILE_SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+
+// SOLO estos dos hostnames exactos (no prefijos, no "incluye"): son los
+// únicos con los que Playwright sirve esta app en local (playwright.config.js,
+// baseURL 'http://localhost:8080'). GitHub Pages nunca sirve la app real bajo
+// el hostname literal "localhost"/"127.0.0.1" — son direcciones de loopback,
+// no dominios enrutables — así que no hay forma de que un visitante real de
+// la app en producción caiga aquí; solo alguien corriendo su propia copia
+// local de los archivos, que no afecta ni protege al sitio real.
+const LOCAL_TEST_HOSTNAMES = new Set(['localhost', '127.0.0.1']);
+
+export function resolveTurnstileSiteKey(hostname) {
+  return LOCAL_TEST_HOSTNAMES.has(hostname) ? TURNSTILE_SITE_KEY_TEST : TURNSTILE_SITE_KEY_REAL;
+}
+
+const TURNSTILE_SITE_KEY = resolveTurnstileSiteKey(window.location.hostname);
+
+// Cacheado a nivel de módulo: si el asistente se abre, se cancela y se
+// vuelve a abrir, el script solo se inyecta una vez.
+let turnstileScriptPromise = null;
+function loadTurnstileScript() {
+  if (window.turnstile) return Promise.resolve();
+  if (!turnstileScriptPromise) {
+    turnstileScriptPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = TURNSTILE_SCRIPT_URL;
+      script.async = true;
+      script.defer = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('No se pudo cargar la verificación anti-bot.'));
+      document.head.appendChild(script);
+    });
+  }
+  return turnstileScriptPromise;
+}
+
 // Igual que templatesOpen en settings.js: se reinicia solo al salir de
 // Ajustes, no hace falta persistirlo.
 let wizardOpen = false;
@@ -113,25 +158,75 @@ export function mountCloudSyncWizard(container, { initialEmail = '', onCancel, o
   let busy = false;
   let error = null;
   let generatedCode = null;
+  let captchaToken = null;
+  let turnstileWidgetId = null;
 
+  // El widget de Turnstile vive en un nodo fijo, sibling del contenido que
+  // sí se repinta en cada render() (topWrap/bottomWrap): si estuviera
+  // dentro de ese contenido, cada tecla en el email/contraseña lo
+  // destruiría y recrearía (clear() lo borra del DOM), reiniciando la
+  // verificación. Solo se muestra durante el paso 'auth'.
+  clear(container);
+  const topWrap = el('div', {});
+  const turnstileSlot = el('div', { class: 'turnstile-slot' });
+  const bottomWrap = el('div', {});
+  container.appendChild(topWrap);
+  container.appendChild(turnstileSlot);
+  container.appendChild(bottomWrap);
+
+  mountTurnstile();
   render();
 
+  async function mountTurnstile() {
+    try {
+      await loadTurnstileScript();
+      if (turnstileWidgetId !== null) return;
+      turnstileWidgetId = window.turnstile.render(turnstileSlot, {
+        sitekey: TURNSTILE_SITE_KEY,
+        callback: (token) => { captchaToken = token; },
+        'expired-callback': () => { captchaToken = null; },
+        'error-callback': () => { captchaToken = null; }
+      });
+    } catch (err) {
+      console.warn('turnstile: fallo al cargar la verificación anti-bot', err);
+    }
+  }
+
+  function resetTurnstile() {
+    captchaToken = null;
+    if (turnstileWidgetId !== null && window.turnstile) {
+      try { window.turnstile.reset(turnstileWidgetId); } catch { /* noop */ }
+    }
+  }
+
+  function destroyTurnstile() {
+    if (turnstileWidgetId !== null && window.turnstile) {
+      try { window.turnstile.remove(turnstileWidgetId); } catch { /* noop */ }
+      turnstileWidgetId = null;
+    }
+  }
+
   function render() {
-    clear(container);
-    container.appendChild(build());
+    turnstileSlot.style.display = step === 'auth' ? '' : 'none';
+    clear(topWrap);
+    clear(bottomWrap);
+    const built = build();
+    topWrap.appendChild(built.top);
+    bottomWrap.appendChild(built.bottom);
   }
 
   function build() {
-    const wrap = el('div', {});
-    if (error) wrap.appendChild(el('p', { class: 'muted', text: `⚠ ${error}` }));
+    const top = el('div', {});
+    const bottom = el('div', {});
+    if (error) top.appendChild(el('p', { class: 'muted', text: `⚠ ${error}` }));
 
     if (step === 'auth') {
       const emailInput = el('input', { type: 'email', class: 'settings-date', placeholder: 'tu@email.com', value: email, autocomplete: 'email' });
       const passwordInput = el('input', { type: 'password', class: 'settings-date', placeholder: 'Contraseña', autocomplete: 'current-password' });
       emailInput.addEventListener('input', () => { email = emailInput.value; });
 
-      wrap.appendChild(el('div', { class: 'settings-row' }, [el('span', { text: 'Email' }), emailInput]));
-      wrap.appendChild(el('div', { class: 'settings-row' }, [el('span', { text: 'Contraseña' }), passwordInput]));
+      top.appendChild(el('div', { class: 'settings-row' }, [el('span', { text: 'Email' }), emailInput]));
+      top.appendChild(el('div', { class: 'settings-row' }, [el('span', { text: 'Contraseña' }), passwordInput]));
 
       const runAuth = async (fn) => {
         if (busy) return;
@@ -140,14 +235,20 @@ export function mountCloudSyncWizard(container, { initialEmail = '', onCancel, o
           render();
           return;
         }
+        if (!captchaToken) {
+          error = 'Completa la verificación anti-bot de arriba antes de continuar.';
+          render();
+          return;
+        }
         busy = true;
         error = null;
         render();
         try {
-          const result = await fn(emailInput.value.trim(), passwordInput.value);
+          const result = await fn(emailInput.value.trim(), passwordInput.value, captchaToken);
           busy = false;
           if (result.confirmEmailRequired) {
             error = 'Cuenta creada. Revisa tu email para confirmarla y luego vuelve aquí e inicia sesión.';
+            resetTurnstile();
             render();
             return;
           }
@@ -157,18 +258,22 @@ export function mountCloudSyncWizard(container, { initialEmail = '', onCancel, o
         } catch (err) {
           busy = false;
           error = translateAuthError(err);
+          // El token de Turnstile es de un solo uso: hace falta uno nuevo
+          // para reintentar tras un fallo (email/contraseña incorrectos...).
+          resetTurnstile();
           render();
         }
       };
 
-      wrap.appendChild(el('div', { class: 'plan-row-actions' }, [
+      bottom.appendChild(el('div', { class: 'plan-row-actions' }, [
         el('button', { class: 'btn btn--secondary btn--small', text: busy ? '...' : 'Crear cuenta', onClick: () => runAuth(sync.signUp) }),
         el('button', { class: 'btn btn--secondary btn--small', text: busy ? '...' : 'Iniciar sesión', onClick: () => runAuth(sync.signIn) })
       ]));
-      wrap.appendChild(el('button', { class: 'btn btn--ghost btn--small', text: 'Cancelar', onClick: () => onCancel() }));
-      return wrap;
+      bottom.appendChild(el('button', { class: 'btn btn--ghost btn--small', text: 'Cancelar', onClick: () => { destroyTurnstile(); onCancel(); } }));
+      return { top, bottom };
     }
 
+    const wrap = top; // pasos siguientes: todo el contenido va en `top`, sin turnstile.
     if (step === 'key-choice') {
       wrap.appendChild(el('p', {
         class: 'muted',
@@ -200,8 +305,8 @@ export function mountCloudSyncWizard(container, { initialEmail = '', onCancel, o
           }
         }
       }));
-      wrap.appendChild(el('button', { class: 'btn btn--ghost btn--small', text: 'Cancelar', onClick: () => onCancel() }));
-      return wrap;
+      wrap.appendChild(el('button', { class: 'btn btn--ghost btn--small', text: 'Cancelar', onClick: () => { destroyTurnstile(); onCancel(); } }));
+      return { top, bottom };
     }
 
     if (step === 'show-code') {
@@ -210,21 +315,22 @@ export function mountCloudSyncWizard(container, { initialEmail = '', onCancel, o
       }));
       wrap.appendChild(el('div', { class: 'recovery-code', text: generatedCode }));
       wrap.appendChild(el('button', { class: 'btn btn--primary', text: 'Ya lo he guardado, continuar', onClick: finish }));
-      return wrap;
+      return { top, bottom };
     }
 
     if (step === 'ready') {
       wrap.appendChild(el('p', { class: 'muted', text: 'Este dispositivo ya tiene una clave de cifrado configurada.' }));
       wrap.appendChild(el('button', { class: 'btn btn--primary', text: 'Continuar', onClick: finish }));
-      return wrap;
+      return { top, bottom };
     }
 
-    return wrap;
+    return { top, bottom };
   }
 
   async function finish() {
     try {
       await sync.finishActivation(email);
+      destroyTurnstile();
       onDone();
     } catch (err) {
       error = err.message;

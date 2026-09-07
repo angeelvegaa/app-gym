@@ -495,6 +495,7 @@ h4 { font-size: 15px; margin: 0 0 8px; }
 .settings-row .settings-select { width: auto; flex: 1; }
 
 textarea.settings-date { resize: vertical; font-family: inherit; }
+.turnstile-slot { margin: 10px 0; overflow-x: auto; }
 .recovery-code {
   font-family: monospace;
   font-size: 13px;

@@ -81,6 +81,10 @@ Quien la activa desde Ajustes → Copia en la nube:
   "último cambio gana" (sin resolución de conflictos compleja).
 - La tabla en Supabase (`sync_data`) tiene RLS: cada cuenta solo puede leer o
   escribir sus propias filas, verificado en la base de datos.
+- El formulario de registro/login lleva un widget de Cloudflare Turnstile
+  (`js/ui/cloud-sync.js`), para que un bot no pueda agotar la cuota de emails
+  de Supabase. El token va como `captchaToken` en `signUp()`/
+  `signInWithPassword()`.
 
 Test e2e real contra el proyecto de Supabase (`e2e/cloud-sync.spec.js`):
 requiere una cuenta ya confirmada (Dashboard → Authentication → Users → Add
@@ -91,6 +95,51 @@ GYM_SYNC_TEST_EMAIL=... GYM_SYNC_TEST_PASSWORD=... npm run test:e2e
 ```
 
 Sin esas variables, ese test se salta solo (no falla el resto de la suite).
+Con Turnstile activo, ese test concreto se salta SIEMPRE en local aunque
+pongas las credenciales (ver "Verificación manual" abajo — el motivo es de
+diseño, no un bug).
+
+### Verificación manual (Turnstile)
+
+`resolveTurnstileSiteKey()` en `js/ui/cloud-sync.js` usa la site key de
+producción salvo que `location.hostname` sea exactamente `localhost` o
+`127.0.0.1` (así sirve Playwright la app en local), en cuyo caso usa la site
+key de test oficial de Cloudflare (siempre resuelve sola, pensada para
+automatización). Dos cosas por diseño de Cloudflare/Supabase que ningún test
+automatizado puede cubrir desde aquí:
+
+1. **La site key real nunca resuelve sola en un navegador controlado por
+   Playwright** (Turnstile detecta el propio user-agent de automatización
+   como bot — es la protección funcionando, no un fallo). Por eso en local
+   se usa la de test.
+2. **El token "dummy" de la site key de test siempre lo rechaza la secret
+   key real** configurada en Supabase (documentado por Cloudflare: las
+   secret keys de producción solo aceptan tokens reales). Probar el
+   `signUp`/`signIn` completo de verdad exigiría cambiar temporalmente esa
+   secret key en Supabase por la de test — se decidió no tocarla, ni
+   siquiera un momento.
+
+Así que antes de confiar en el conjunto completo (Turnstile real + Supabase
+real), hazlo tú mismo a mano, una vez, en la app ya desplegada en GitHub
+Pages (no en `localhost`, ahí sale la de test):
+
+1. Abre `https://angeelvegaa.github.io/app-gym/` en un navegador normal.
+2. Ajustes → Copia en la nube → Activar. Confirma que ves el widget de
+   Turnstile (un check o un cuadro de verificación) y que se resuelve solo o
+   con un clic tuyo — no debería quedarse cargando indefinidamente.
+3. Regístrate con un email de prueba real (necesitas poder leer su bandeja)
+   y una contraseña. Debería decir "Cuenta creada, revisa tu email".
+4. Confirma la cuenta desde el email que llegue (el enlace debe llevar a
+   `https://angeelvegaa.github.io/app-gym/`, no a un 404 — si no, revisa
+   `EMAIL_REDIRECT_TO` en `js/sync.js`).
+5. Vuelve a la app, Ajustes → Copia en la nube → Iniciar sesión con ese
+   mismo email/contraseña. Si entra y pasa al siguiente paso (clave de
+   cifrado), Turnstile + Supabase están funcionando juntos de verdad.
+6. Si quieres confirmar también que el CAPTCHA de verdad bloquea intentos
+   sin resolver: abre las herramientas de red del navegador, bloquea
+   manualmente las peticiones a `challenges.cloudflare.com` y comprueba que
+   el registro/login ya no deja avanzar (queda en "Completa la verificación
+   anti-bot").
 
 ## Ampliar el plan
 

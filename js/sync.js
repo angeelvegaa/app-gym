@@ -157,12 +157,12 @@ export function getStatus() {
   };
 }
 
-export async function signUp(email, password) {
+export async function signUp(email, password, captchaToken) {
   const supabase = await getClient();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: EMAIL_REDIRECT_TO }
+    options: { emailRedirectTo: EMAIL_REDIRECT_TO, captchaToken }
   });
   if (error) throw error;
   if (!data.session) return { confirmEmailRequired: true, email };
@@ -170,9 +170,9 @@ export async function signUp(email, password) {
   return { confirmEmailRequired: false, email };
 }
 
-export async function signIn(email, password) {
+export async function signIn(email, password, captchaToken) {
   const supabase = await getClient();
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } });
   if (error) throw error;
   currentUserId = data.user.id;
   return { confirmEmailRequired: false, email };
