@@ -31,6 +31,8 @@ export function resolveTurnstileSiteKey(hostname) {
 
 const TURNSTILE_SITE_KEY = resolveTurnstileSiteKey(window.location.hostname);
 
+const TURNSTILE_LOAD_ERROR_MSG = 'No se pudo cargar la verificación anti-bot. Revisa tu conexión, o si bloqueas contenido de challenges.cloudflare.com, y recarga la página.';
+
 // Cacheado a nivel de módulo: si el asistente se abre, se cancela y se
 // vuelve a abrir, el script solo se inyecta una vez.
 let turnstileScriptPromise = null;
@@ -181,14 +183,31 @@ export function mountCloudSyncWizard(container, { initialEmail = '', onCancel, o
     try {
       await loadTurnstileScript();
       if (turnstileWidgetId !== null) return;
+      if (!window.turnstile) {
+        // loadTurnstileScript() resolvió pero el script no dejó
+        // `window.turnstile` definido (script cargado desde una caché
+        // vieja, bloqueado a medias por un content-blocker...). No debe
+        // pasar en condiciones normales, pero si pasa hay que verlo.
+        throw new Error('El script de Turnstile cargó pero window.turnstile no existe.');
+      }
       turnstileWidgetId = window.turnstile.render(turnstileSlot, {
         sitekey: TURNSTILE_SITE_KEY,
-        callback: (token) => { captchaToken = token; },
+        callback: (token) => {
+          captchaToken = token;
+          if (error === TURNSTILE_LOAD_ERROR_MSG) { error = null; render(); }
+        },
         'expired-callback': () => { captchaToken = null; },
-        'error-callback': () => { captchaToken = null; }
+        'error-callback': (errorCode) => {
+          captchaToken = null;
+          console.error('turnstile: error-callback, código', errorCode, '— sitekey usada:', TURNSTILE_SITE_KEY, '— hostname:', window.location.hostname);
+          error = `No se pudo verificar (código ${errorCode}). Revisa tu conexión o desactiva bloqueadores de contenido para challenges.cloudflare.com, y vuelve a intentarlo.`;
+          render();
+        }
       });
     } catch (err) {
-      console.warn('turnstile: fallo al cargar la verificación anti-bot', err);
+      console.error('turnstile: fallo al cargar/montar la verificación anti-bot', err, '— sitekey usada:', TURNSTILE_SITE_KEY, '— hostname:', window.location.hostname);
+      error = TURNSTILE_LOAD_ERROR_MSG;
+      render();
     }
   }
 
