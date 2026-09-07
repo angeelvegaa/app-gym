@@ -16,6 +16,12 @@ const SUPABASE_URL = 'https://sygwmcqrsohvznaecdhw.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_D12ROkg3SavKVZCbfFB8_g_Y-7kBotq';
 const SUPABASE_SDK_URL = 'https://esm.sh/@supabase/supabase-js@2';
 
+// Fijo a propósito, NUNCA calculado con window.location: GitHub Pages sirve
+// esta app bajo /app-gym/, y un valor dinámico (origin/href) puede perder
+// esa ruta según desde dónde se abra, mandando el enlace de confirmación de
+// email a la raíz del dominio (404).
+const EMAIL_REDIRECT_TO = 'https://angeelvegaa.github.io/app-gym/';
+
 const META_ENABLED = 'gym.sync.enabled';
 const META_EMAIL = 'gym.sync.email';
 const META_KEY = 'gym.sync.key';
@@ -153,7 +159,11 @@ export function getStatus() {
 
 export async function signUp(email, password) {
   const supabase = await getClient();
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: EMAIL_REDIRECT_TO }
+  });
   if (error) throw error;
   if (!data.session) return { confirmEmailRequired: true, email };
   currentUserId = data.user.id;
