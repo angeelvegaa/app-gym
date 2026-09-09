@@ -10,6 +10,12 @@ import * as state from './state.js';
 import * as storage from './storage.js';
 import * as sync from './sync.js';
 import { todayStr, isWeekChangeDay, getBlockPosition, getWeekBannerMessage } from './schedule.js';
+import { isAutoExportRequested, renderAutoExport } from './autoexport.js';
+
+// ?autoexport=1: vista de solo lectura en texto plano para una automatización
+// externa, en vez de la interfaz normal (ver autoexport.js). Sin ese
+// parámetro exacto en la URL, todo lo de abajo se comporta igual que siempre.
+const autoExportMode = isAutoExportRequested();
 
 const root = document.getElementById('view');
 const navButtons = document.querySelectorAll('.nav-btn');
@@ -96,18 +102,22 @@ function route() {
   }
 }
 
-navButtons.forEach(btn => {
-  btn.addEventListener('click', () => navigate(`#/${btn.dataset.section}`));
-});
+if (autoExportMode) {
+  renderAutoExport(document.body);
+} else {
+  navButtons.forEach(btn => {
+    btn.addEventListener('click', () => navigate(`#/${btn.dataset.section}`));
+  });
 
-window.addEventListener('hashchange', route);
-route();
-maybeShowWeekChangeBanner();
+  window.addEventListener('hashchange', route);
+  route();
+  maybeShowWeekChangeBanner();
 
-// No-op si la copia en la nube está apagada (caso por defecto): ninguna
-// llamada de red. Si está encendida, fusiona en segundo plano y solo
-// vuelve a pintar la pantalla actual si trajo algo nuevo de la nube.
-sync.init(() => route());
+  // No-op si la copia en la nube está apagada (caso por defecto): ninguna
+  // llamada de red. Si está encendida, fusiona en segundo plano y solo
+  // vuelve a pintar la pantalla actual si trajo algo nuevo de la nube.
+  sync.init(() => route());
+}
 
 // Aviso de que hoy arranca una semana nueva del bloque, solo el día exacto
 // en que cambia y solo la primera vez que se abre la app ese día (se
@@ -141,7 +151,7 @@ function showWeekBanner(message) {
   document.body.appendChild(banner);
 }
 
-if ('serviceWorker' in navigator) {
+if (!autoExportMode && 'serviceWorker' in navigator) {
   let reloadedAfterUpdate = false;
   // clients.claim() en el activate también dispara "controllerchange" la
   // primerísima vez que el SW reclama una página que aún no tenía
