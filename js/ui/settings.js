@@ -3,6 +3,7 @@ import { PHASES, PHASE_LABELS, SEED_PLANS } from '../plan.js';
 import * as state from '../state.js';
 import * as storage from '../storage.js';
 import { renderCloudSyncCard } from './cloud-sync.js';
+import { buildAutoExportText } from '../autoexport.js';
 
 const WEEKDAY_NAMES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -234,6 +235,23 @@ export function renderSettings(root, navigate) {
   ]);
   root.appendChild(backupWrap);
 
+  // Exportar para Atajos: el mismo resumen en texto plano que ?autoexport=1,
+  // pero disparado desde AQUÍ (dentro de la app instalada, con sus datos
+  // reales) vía el share sheet nativo. Necesario porque un Atajo que abra la
+  // URL directamente aterriza en el almacenamiento de Safari, que en iOS
+  // está aislado del de la PWA instalada — el share sheet, en cambio, se
+  // dispara desde dentro de la propia app, así que ve el localStorage real.
+  const shortcutsWrap = el('div', { class: 'card' }, [
+    el('h4', { text: 'Exportar para Atajos' }),
+    el('p', { class: 'muted', text: 'Comparte un resumen del último mes en texto plano (sesiones, series, RPE) — elige tu Atajo en el menú de compartir de iOS.' }),
+    el('button', {
+      class: 'btn btn--secondary',
+      text: 'Compartir resumen',
+      onClick: () => shareAutoExport()
+    })
+  ]);
+  root.appendChild(shortcutsWrap);
+
   // Copia en la nube (opcional, apagada por defecto)
   root.appendChild(renderCloudSyncCard(root, renderSettings, navigate));
 
@@ -252,6 +270,27 @@ export function renderSettings(root, navigate) {
     })
   ]);
   root.appendChild(dangerWrap);
+}
+
+// navigator.share requiere gesto de usuario directo (el propio tap) y no
+// funciona en todos los navegadores: si no está disponible, se cae a copiar
+// al portapapeles en vez de fallar en silencio.
+async function shareAutoExport() {
+  const text = buildAutoExportText();
+  if (navigator.share) {
+    try {
+      await navigator.share({ text });
+    } catch (err) {
+      if (err.name !== 'AbortError') toast('No se pudo compartir: ' + err.message);
+    }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('Compartir no está disponible aquí: copiado al portapapeles');
+  } catch {
+    alert('Ni compartir ni copiar están disponibles en este navegador.');
+  }
 }
 
 function downloadExport() {
