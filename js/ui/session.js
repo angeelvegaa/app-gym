@@ -252,6 +252,24 @@ function renderSetRow(session, ex, entry, idx, last, onChange) {
     repsStepper.classList.add('stepper--reference');
   }
 
+  // RPE de esa misma serie la vez anterior, solo como referencia visual
+  // (no se persiste hasta que el usuario marca la serie con su propio RPE).
+  // Prioriza el RPE guardado por serie; si esa sesión antigua no lo tenía
+  // (era de antes de que el RPE se guardara por serie), cae al RPE único de
+  // sesión completa de entonces, igual de "mejor esfuerzo" que hace
+  // effectiveRpe() en suggestions.js pero sin promediar nada: aquí es un
+  // dato puntual de referencia, no un resumen de toda la sesión. Ese
+  // respaldo legado solo aplica cuando SÍ hay una serie equivalente por
+  // índice (lastSet existe) pero le falta el RPE propio — si la sesión
+  // anterior ni siquiera tenía esa serie (p. ej. se añadieron series extra
+  // al plan), no hay nada de esa serie con lo que comparar.
+  const lastRpe = lastSet
+    ? (lastSet.rpe != null ? lastSet.rpe : (last && last.rpe != null ? last.rpe : null))
+    : null;
+  const lastRpeLabel = lastRpe != null
+    ? el('span', { class: 'set-row-last-rpe', text: `RPE ant. ${formatRpe(lastRpe)}` })
+    : null;
+
   const checkBtn = el('button', {
     class: `set-check${set.status === 'done' ? ' set-check--done' : ''}`,
     type: 'button',
@@ -308,7 +326,8 @@ function renderSetRow(session, ex, entry, idx, last, onChange) {
     el('div', { class: 'set-row-top' }, [
       el('span', { class: 'set-number', text: `#${idx + 1}` }),
       weightStepper,
-      repsStepper
+      repsStepper,
+      lastRpeLabel
     ]),
     el('div', { class: 'set-row-bottom' }, [
       skipBtn,
