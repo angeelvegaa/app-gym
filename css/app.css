@@ -684,20 +684,29 @@ textarea.settings-date { resize: vertical; font-family: inherit; }
   box-shadow: var(--shadow);
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  flex-wrap: wrap;
+  row-gap: 8px;
+  column-gap: 12px;
 }
 .rest-timer.rest-timer--visible { display: flex; }
 .rest-timer--done {
   border-color: var(--success);
   background: color-mix(in srgb, var(--success) 15%, var(--surface));
 }
+/* flex-shrink: 0 + min-width: 0 evitan que la cuenta atrás se comprima o
+   corte cuando los botones de al lado no caben en el ancho disponible (letra
+   grande de accesibilidad, zoom del navegador...): si no cabe todo en una
+   fila, .rest-timer-actions salta a la siguiente (flex-wrap arriba) en vez
+   de robarle espacio al número. */
 .rest-timer-time {
+  flex-shrink: 0;
   font-size: 20px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
   color: var(--text);
 }
-.rest-timer-actions { display: flex; align-items: center; gap: 8px; }
+.rest-timer-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .rest-timer-btn {
   background: var(--surface);
   border: 1px solid var(--border);
