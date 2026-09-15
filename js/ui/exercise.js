@@ -88,7 +88,7 @@ function buildChart(history, exercise) {
     .filter(p => p.value != null);
   if (points.length < 2) return null;
 
-  const height = 140, padX = 30, padY = 20;
+  const height = 150, padX = 30, padTop = 34, padBot = 24;
   const width = Math.max(320, points.length * 22);
   const values = points.map(p => p.value);
   const minW = Math.min(...values), maxW = Math.max(...values);
@@ -97,11 +97,22 @@ function buildChart(history, exercise) {
   const xStep = (width - padX * 2) / (points.length - 1);
   const coords = points.map((p, i) => ({
     x: padX + i * xStep,
-    y: height - padY - ((p.value - minW) / range) * (height - padY * 2),
+    y: height - padBot - ((p.value - minW) / range) * (height - padTop - padBot),
     ...p
   }));
 
   const pathD = coords.map((c, i) => `${i === 0 ? 'M' : 'L'}${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ');
+
+  // Índices de puntos que llevan etiqueta con el valor numérico encima: si
+  // hay pocos puntos, todos; si hay muchos, solo los hitos (primero, último,
+  // mínimo, máximo) para no saturar el gráfico.
+  let labelIdx;
+  if (coords.length <= 10) {
+    labelIdx = coords.map((_, i) => i);
+  } else {
+    const minI = values.indexOf(minW), maxI = values.indexOf(maxW);
+    labelIdx = [...new Set([0, coords.length - 1, minI, maxI])];
+  }
 
   const svgNS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(svgNS, 'svg');
@@ -117,19 +128,28 @@ function buildChart(history, exercise) {
     const line = document.createElementNS(svgNS, 'line');
     line.setAttribute('x1', lineX.toFixed(1));
     line.setAttribute('x2', lineX.toFixed(1));
-    line.setAttribute('y1', padY - 8);
-    line.setAttribute('y2', height - padY + 8);
+    line.setAttribute('y1', padTop - 8);
+    line.setAttribute('y2', height - padBot + 8);
     line.setAttribute('class', 'progress-chart-block-line');
     svg.appendChild(line);
 
     const label = document.createElementNS(svgNS, 'text');
     label.setAttribute('x', lineX.toFixed(1));
-    label.setAttribute('y', padY - 10);
+    label.setAttribute('y', padTop - 10);
     label.setAttribute('text-anchor', 'middle');
     label.setAttribute('class', 'progress-chart-block-label');
     label.textContent = `B${coords[i].block}`;
     svg.appendChild(label);
   }
+
+  // Relleno de área translúcido bajo la línea, hasta la línea base del
+  // gráfico: el mismo trazado que la línea, cerrado por abajo.
+  const baseY = (height - padBot).toFixed(1);
+  const areaD = `${pathD} L${coords[coords.length - 1].x.toFixed(1)},${baseY} L${coords[0].x.toFixed(1)},${baseY} Z`;
+  const area = document.createElementNS(svgNS, 'path');
+  area.setAttribute('d', areaD);
+  area.setAttribute('class', 'progress-chart-area');
+  svg.appendChild(area);
 
   const path = document.createElementNS(svgNS, 'path');
   path.setAttribute('d', pathD);
@@ -147,6 +167,19 @@ function buildChart(history, exercise) {
     const title = document.createElementNS(svgNS, 'title');
     title.textContent = `${c.date}: ${c.value}${metricUnit(exercise)} · B${c.block} S${c.weekInBlock}${c.rpe != null ? ` · RPE ${formatRpe(c.rpe)}` : ''}${c.weekInBlock === 4 ? ' · deload' : ''}`;
     circle.appendChild(title);
+  });
+
+  // Números de peso encima de los puntos relevantes, pintados al final para
+  // quedar por encima de línea, área y puntos.
+  labelIdx.forEach(i => {
+    const c = coords[i];
+    const label = document.createElementNS(svgNS, 'text');
+    label.setAttribute('x', c.x.toFixed(1));
+    label.setAttribute('y', (c.y - 8).toFixed(1));
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('class', 'progress-chart-value-label');
+    label.textContent = String(c.value);
+    svg.appendChild(label);
   });
 
   return svg;
