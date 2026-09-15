@@ -215,6 +215,27 @@ export function renderSettings(root, navigate) {
   }));
   root.appendChild(rangeWrap);
 
+  // Cronómetro de descanso entre series (opt-in, apagado por defecto: con
+  // esto desactivado la pantalla de entreno no muestra nada relacionado).
+  const restTimerWrap = el('div', { class: 'card' }, [
+    el('h4', { text: 'Cronómetro de descanso' }),
+    el('p', { class: 'muted', text: 'Al marcar una serie como hecha, arranca una cuenta atrás de descanso hasta la siguiente.' })
+  ]);
+  const restTimerCheckboxWrap = el('label', { class: 'editor-checkbox-row' });
+  const restTimerCheckbox = el('input', {
+    type: 'checkbox',
+    'aria-label': 'activar cronómetro de descanso entre series'
+  });
+  restTimerCheckbox.checked = !!settings.restTimerEnabled;
+  restTimerCheckbox.addEventListener('change', () => {
+    state.updateSettings({ restTimerEnabled: restTimerCheckbox.checked });
+    toast(restTimerCheckbox.checked ? 'Cronómetro de descanso activado' : 'Cronómetro de descanso desactivado');
+  });
+  restTimerCheckboxWrap.appendChild(restTimerCheckbox);
+  restTimerCheckboxWrap.appendChild(document.createTextNode(' Activar cronómetro de descanso entre series'));
+  restTimerWrap.appendChild(restTimerCheckboxWrap);
+  root.appendChild(restTimerWrap);
+
   // Backup
   const backupWrap = el('div', { class: 'card' }, [
     el('h4', { text: 'Copia de seguridad' }),

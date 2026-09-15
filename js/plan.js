@@ -410,6 +410,19 @@ export const SEED_PLANS = [
   }
 ];
 
+export const DEFAULT_REST_SECONDS = 90;
+
+// Descanso sugerido a partir del rango de reps: un básico pesado de 6-8
+// necesita mucho más que un accesorio de 12-15. Derivado en vez de
+// etiquetado a mano para que también acierte en ejercicios creados por el
+// usuario desde el editor.
+export function defaultRestSeconds(ex) {
+  if (ex.repMax == null) return DEFAULT_REST_SECONDS;
+  if (ex.repMax <= 8) return 180;
+  if (ex.repMax <= 12) return 120;
+  return 60;
+}
+
 export const PHASES = ['definicion', 'volumen', 'mantenimiento'];
 
 export const PHASE_LABELS = {

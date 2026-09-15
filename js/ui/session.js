@@ -2,6 +2,8 @@ import { el, clear, numberStepper, rpeChips, toast, formatRepRange } from './com
 import * as state from '../state.js';
 import { getTargetRpe, getSuggestedSets, isDeloadWeek } from '../schedule.js';
 import { effectiveRpe, formatRpe } from '../suggestions.js';
+import { defaultRestSeconds } from '../plan.js';
+import * as restTimer from '../rest-timer.js';
 
 // Un solo ejercicio expandido a la vez, guardado fuera del render para sobrevivir a redibujados.
 let expandedId = null;
@@ -10,6 +12,13 @@ function lastEntryFor(exerciseId, currentSession) {
   const history = state.getExerciseHistory(exerciseId).filter(h => h.date !== currentSession.date);
   if (!history.length) return null;
   return history[history.length - 1];
+}
+
+// Descanso efectivo para un ejercicio+entrada: primero el cambio puntual de
+// hoy (entry.restSeconds), luego el guardado en el plan (ex.restSeconds), y
+// por último el calculado a partir del rango de reps.
+function effectiveRestSeconds(entry, ex) {
+  return entry.restSeconds ?? ex.restSeconds ?? defaultRestSeconds(ex);
 }
 
 export function renderSession(root, sessionId, navigate) {
@@ -164,6 +173,10 @@ function renderStrengthExercise(session, ex, onChange) {
     body.appendChild(renderSetRow(session, ex, entry, idx, last, onChange));
   });
 
+  if (state.getSettings().restTimerEnabled) {
+    body.appendChild(renderRestEditRow(session, ex, entry));
+  }
+
   body.appendChild(el('button', {
     class: 'btn btn--ghost btn--small add-set-btn',
     type: 'button',
@@ -180,6 +193,48 @@ function renderStrengthExercise(session, ex, onChange) {
 
   wrap.appendChild(body);
   return wrap;
+}
+
+// Fila de edición del descanso de este ejercicio, solo visible con el
+// cronómetro activado (ver settings.js: restTimerEnabled). El stepper
+// cambia el descanso SOLO para hoy (entry.restSeconds, una vez por
+// ejercicio, no por serie individual); "Guardar en el plan" lo hace
+// permanente para las próximas veces que se entrene este ejercicio.
+function renderRestEditRow(session, ex, entry) {
+  const stepper = numberStepper({
+    value: effectiveRestSeconds(entry, ex),
+    step: 15,
+    unit: 's',
+    min: 0,
+    onChange: (v) => {
+      // numberStepper solo aplica el mínimo en los botones +/-, no al
+      // escribir directamente en el campo (v llega tal cual del <input>),
+      // así que se fuerza aquí — y se refleja también en el campo, para que
+      // "Guardar en el plan" (que lee el DOM tal cual) no pueda colarlo.
+      const seconds = v == null ? null : Math.max(0, v);
+      const input = stepper.querySelector('.stepper-value');
+      if (input) input.value = seconds ?? '';
+      state.updateEntry(session.id, ex.id, e => { e.restSeconds = seconds; });
+    }
+  });
+
+  const saveBtn = el('button', {
+    class: 'btn btn--ghost btn--small',
+    type: 'button',
+    text: 'Guardar en el plan',
+    onClick: () => {
+      const raw = readStepperValue(stepper);
+      const seconds = raw == null ? null : Math.max(0, raw);
+      state.setExerciseRestSeconds(session.planVersion, ex.id, seconds);
+      toast('Descanso guardado en el plan');
+    }
+  });
+
+  return el('div', { class: 'rest-edit-row' }, [
+    el('span', { class: 'rest-edit-label', text: 'Descanso' }),
+    stepper,
+    saveBtn
+  ]);
 }
 
 // Nota corta y opcional sobre cómo ha ido el ejercicio en conjunto (p. ej.
@@ -265,6 +320,9 @@ function renderSetRow(session, ex, entry, idx, last, onChange) {
       // WebKit — y perder lo escrito si dependemos de ese evento).
       const liveWeight = weightStepper ? readStepperValue(weightStepper) : null;
       const liveReps = readStepperValue(repsStepper);
+      // Solo arranca el cronómetro al COMPLETAR la serie, nunca al
+      // deshacerla (por eso se comprueba el estado ANTES de actualizarlo).
+      const wasDone = set.status === 'done';
       state.updateEntry(session.id, ex.id, e => {
         const s = e.sets[idx];
         if (s.status === 'done') {
@@ -275,6 +333,9 @@ function renderSetRow(session, ex, entry, idx, last, onChange) {
           s.status = 'done';
         }
       });
+      if (!wasDone && state.getSettings().restTimerEnabled) {
+        restTimer.start(effectiveRestSeconds(entry, ex));
+      }
       onChange();
     }
   });

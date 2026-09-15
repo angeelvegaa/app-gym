@@ -9,6 +9,7 @@ import { renderPlanEditor } from './ui/plan-editor.js';
 import * as state from './state.js';
 import * as storage from './storage.js';
 import * as sync from './sync.js';
+import * as restTimer from './rest-timer.js';
 import { todayStr, isWeekChangeDay, getBlockPosition, getWeekBannerMessage } from './schedule.js';
 import { isAutoExportRequested, renderAutoExport } from './autoexport.js';
 
@@ -40,6 +41,12 @@ function route() {
   const param = rest[0];
 
   window.scrollTo(0, 0);
+
+  // El cronómetro de descanso vive fuera de #view (ver rest-timer.js) para
+  // sobrevivir a los redibujados de la pantalla de entreno, así que hay que
+  // pararlo a mano en cuanto se navega a cualquier otra sección — si no,
+  // se quedaría corriendo (y visible) sobre pantallas que no son la sesión.
+  if (section !== 'session') restTimer.stop();
 
   // Dispositivo sin ninguna rutina guardada todavía: fuerza la
   // configuración inicial, salvo que ya vayamos hacia el editor (p. ej.
