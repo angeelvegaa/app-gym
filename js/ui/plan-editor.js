@@ -256,6 +256,7 @@ function renderExerciseCard(day, ex, rerender) {
     body.appendChild(numberField('Reps mínimas', ex.repMin, (v) => { ex.repMin = v; }));
     body.appendChild(numberField('Reps máximas', ex.repMax, (v) => { ex.repMax = v; }));
     body.appendChild(numberField('RPE objetivo (vacío = sin RPE fijo todavía)', ex.rpe, (v) => { ex.rpe = v; }, 0.5));
+    body.appendChild(numberField('Descanso (segundos, vacío = automático)', ex.restSeconds, (v) => { ex.restSeconds = v; }, 15));
 
     const bodyweightWrap = el('label', { class: 'editor-checkbox-row' });
     const bodyweightCheckbox = el('input', { type: 'checkbox' });

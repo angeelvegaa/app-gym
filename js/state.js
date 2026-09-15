@@ -48,7 +48,11 @@ function defaultSettings() {
   return {
     phase: 'definicion',
     blockStart: nextMonday(),
-    weekdays
+    weekdays,
+    // Cronómetro de descanso entre series: opt-in, apagado por defecto. Con
+    // esto en false la app se comporta exactamente igual que antes de este
+    // ajuste (sin cronómetro en ningún sitio).
+    restTimerEnabled: false
   };
 }
 
@@ -244,6 +248,29 @@ export function deletePlan(version) {
   ensureLoaded();
   if (_plans.activeVersion === version) throw new Error('No se puede borrar la rutina activa.');
   delete _plans.plans[version];
+  persistPlans();
+}
+
+// Guarda el descanso por defecto de un ejercicio concreto DENTRO de la
+// rutina guardada (cambio permanente, "para siempre" hasta que se cambie de
+// nuevo), a diferencia de entry.restSeconds que es solo para la sesión de
+// hoy. Busca el ejercicio por id en cualquier día de la rutina (mismo id
+// puede repetirse en varios días — ver plan.js — así que se actualizan
+// todas las apariciones para que no queden desincronizadas).
+export function setExerciseRestSeconds(planVersion, exerciseId, seconds) {
+  ensureLoaded();
+  const plan = _plans.plans[planVersion];
+  if (!plan) throw new Error(`Rutina desconocida: ${planVersion}`);
+  let found = false;
+  plan.days.forEach(day => {
+    (day.exercises || []).forEach(ex => {
+      if (ex.id === exerciseId) {
+        ex.restSeconds = seconds;
+        found = true;
+      }
+    });
+  });
+  if (!found) throw new Error(`Ejercicio desconocido: ${exerciseId}`);
   persistPlans();
 }
 
