@@ -387,12 +387,14 @@ function renderSetRow(session, ex, entry, idx, last, onChange) {
     el('div', { class: 'set-row-top' }, [
       el('span', { class: 'set-number', text: `#${idx + 1}` }),
       weightStepper,
-      repsStepper,
-      lastRpeLabel
+      repsStepper
     ]),
     el('div', { class: 'set-row-bottom' }, [
-      skipBtn,
-      checkBtn
+      lastRpeLabel,
+      el('div', { class: 'set-row-actions' }, [
+        skipBtn,
+        checkBtn
+      ])
     ]),
     rpeRow
   ]);

@@ -230,8 +230,14 @@ h4 { font-size: 15px; margin: 0 0 8px; }
 .set-row-bottom {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 16px;
+}
+.set-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
 }
 
 .set-number { width: 26px; font-size: 13px; color: var(--text-muted); flex-shrink: 0; }
@@ -285,16 +291,13 @@ h4 { font-size: 15px; margin: 0 0 8px; }
 .stepper--reference .stepper-value,
 .stepper--reference .stepper-unit { color: var(--text-muted); }
 
-/* RPE de la vez anterior en esa misma serie, junto a los steppers de peso/
-   reps precargados. Texto corto y en gris para no competir con el flujo
-   principal de marcar series; no se deja encoger (los steppers, con
-   min-width:0, ceden el espacio primero) ni saltar de línea en móviles
-   estrechos. */
+/* RPE de la vez anterior en esa misma serie, en la fila inferior junto a
+   saltar/check: en la fila superior competía por ancho con los steppers de
+   peso/reps y los dejaba ilegibles en móviles estrechos. */
 .set-row-last-rpe {
   font-size: 12px;
   color: var(--text-muted);
   white-space: nowrap;
-  flex-shrink: 0;
 }
 
 .set-check {
