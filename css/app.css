@@ -730,8 +730,16 @@ textarea.settings-date { resize: vertical; font-family: inherit; }
    entreno (session.js), coherente con .exercise-hint / .settings-row. */
 .rest-edit-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   margin: 4px 4px 10px;
 }
 .rest-edit-label { font-size: 13px; color: var(--text-muted); }
+/* El stepper de aquí no debe compartir el flex:1 del genérico (pensado para
+   repartirse a medias con otro stepper, como en peso/reps): junto al botón
+   "Guardar en el plan" eso lo aplastaba hasta ocultar el número en móviles
+   estrechos. Ancho fijo propio, y el botón pasa a la siguiente línea si no
+   cabe, en vez de robarle sitio a los dígitos. */
+.rest-edit-row .stepper { flex: 0 0 auto; width: 130px; }
+.rest-edit-row .btn { flex-shrink: 0; }
